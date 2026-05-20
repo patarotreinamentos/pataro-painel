@@ -227,9 +227,9 @@ tr:hover td{background:var(--bg)}
 .ba-sl{font-size:11px;color:var(--txm)}
 .ba-sep{width:0.5px;height:14px;background:var(--bdr)}
 .ba-tc{background:var(--card);border:0.5px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:1rem}
-.ba-hdr{display:grid;grid-template-columns:2fr 1fr 1.6fr .8fr .8fr .8fr 32px;background:var(--bg);border-bottom:0.5px solid var(--bdr)}
+.ba-hdr{display:grid;grid-template-columns:2fr 1fr 1.6fr .8fr .8fr .8fr 48px;background:var(--bg);border-bottom:0.5px solid var(--bdr)}
 .ba-th{font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.3px;padding:6px 10px;font-weight:500;white-space:nowrap}
-.ba-row{display:grid;grid-template-columns:2fr 1fr 1.6fr .8fr .8fr .8fr 32px;border-bottom:0.5px solid var(--bdr);cursor:pointer;transition:background .1s;align-items:center}
+.ba-row{display:grid;grid-template-columns:2fr 1fr 1.6fr .8fr .8fr .8fr 48px;border-bottom:0.5px solid var(--bdr);cursor:pointer;transition:background .1s;align-items:center}
 .ba-row:last-child{border-bottom:none}
 .ba-row:hover{background:var(--bg)}
 .ba-td{padding:7px 10px;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -521,14 +521,13 @@ tr:hover td{background:var(--bg)}
 
         <!-- TABELA PRINCIPAL -->
         <div class="ba-tc">
-          <div class="ba-hdr" style="grid-template-columns:2fr 1fr 1.6fr 0.8fr 0.8fr 0.8fr 32px 32px">
+          <div class="ba-hdr">
             <div class="ba-th">Aluno</div>
             <div class="ba-th">Telefone</div>
             <div class="ba-th">E-mail</div>
             <div class="ba-th">Produto</div>
             <div class="ba-th">Saúde</div>
             <div class="ba-th">Status</div>
-            <div class="ba-th"></div>
             <div class="ba-th"></div>
           </div>
           <div id="ba-body"></div>
@@ -858,6 +857,15 @@ function buildNav(setor) {
   });
   const first=nav.querySelector('.ni');
   const fi=cfg[0].i[0];
+  // restaurar último painel visitado
+  try {
+    const saved = sessionStorage.getItem('pataro-panel');
+    if (saved) {
+      const {p,tit,tag} = JSON.parse(saved);
+      const savedEl = document.querySelector(`.ni[data-panel="${p}"]`);
+      if (savedEl) { activatePanel(p,tit,tag,savedEl); return; }
+    }
+  } catch(e){}
   if(first) activatePanel(fi.p,fi.tit,fi.tag,first);
 }
 
@@ -1273,8 +1281,10 @@ function baRender(lista) {
       <div class="ba-td"><span class="b ${prod}">${a.produto}</span></div>
       <div class="ba-td"><div class="swrap2"><div class="sbar2"><div class="sfill2 ${bc}" style="width:${s}%"></div></div><span style="font-size:10px;color:var(--txm)">${s}%</span></div></div>
       <div class="ba-td"><span class="b ${stB}">${a.status||'-'}</span></div>
-      <div class="ba-td" style="display:flex;align-items:center;justify-content:center"><i class="ti ti-chevron-right" style="color:var(--txl);font-size:14px"></i></div>
-      <div class="ba-td" style="display:flex;align-items:center;justify-content:center"><button class="ib" style="padding:3px 6px;font-size:11px;border-color:var(--errb);color:var(--err)" onclick="event.stopPropagation();abrirConfirmExclusao(${i},'${a.nome.replace(/'/g,"\\'")}','${a.id||''}')"><i class="ti ti-trash"></i></button></div>
+      <div class="ba-td" style="display:flex;align-items:center;justify-content:center;gap:4px">
+        <button class="ib" style="padding:3px 6px;font-size:11px;border-color:transparent;color:var(--err);background:none" onclick="event.stopPropagation();abrirConfirmExclusao(${i},'${a.nome.replace(/'/g,"\\'")}','${a.id||''}')"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        <i class="ti ti-chevron-right" style="color:var(--txl);font-size:13px"></i>
+      </div>
     </div>`;
   }).join('');
   window._baLista = lista;
