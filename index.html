@@ -1843,29 +1843,49 @@ window.toggleFiltrosAvancados = function() {
 
 // ══ CENTRAL DE ATIVIDADES ══
 const SETORES_BOARD = [
-  {id:'cs',     label:'CS / Pedagógico', cor:'#1a56a8'},
-  {id:'comercial', label:'Comercial',    cor:'#966800'},
-  {id:'marketing', label:'Marketing',    cor:'#8a2070'},
-  {id:'financeiro',label:'Financeiro',   cor:'#1a6e42'},
-  {id:'admin',  label:'Admin',           cor:'#444'},
+  {id:'cs',        label:'CS / Pedagógico', cor:'#1a56a8'},
+  {id:'comercial', label:'Comercial',        cor:'#966800'},
+  {id:'marketing', label:'Marketing',        cor:'#8a2070'},
+  {id:'financeiro',label:'Financeiro',       cor:'#1a6e42'},
+  {id:'admin',     label:'Admin',            cor:'#444'},
 ];
 const STATUS_BOARD = [
   {id:'afazer',    label:'A fazer'},
   {id:'andamento', label:'Em andamento'},
   {id:'concluido', label:'Concluído'},
 ];
-const TAGS_INFO = {
-  vm:{label:'Urgente',cls:'tag-vm'}, am:{label:'Aguardando',cls:'tag-am'},
-  az:{label:'Reunião',cls:'tag-az'}, lj:{label:'Concluído',cls:'tag-lj'},
-  ro:{label:'Cliente',cls:'tag-ro'}, ci:{label:'Financeiro',cls:'tag-ci'},
-  pr:{label:'Estratégia',cls:'tag-pr'},
-};
 
+// Tags são salvas no Firebase e carregadas dinamicamente
 let boardTarefas = [];
+let boardTagsCustom = []; // [{id, label, cor}]
 let editandoTarefa = null;
 let selPrioVal = '';
-let selTags = [];
-let boardUsuarios = [];
+let selTagsAtual = [];
+
+// Salvar tags customizadas no localStorage para persistir
+function salvarTagsLocal() {
+  try { localStorage.setItem('pataro-tags', JSON.stringify(boardTagsCustom)); } catch(e){}
+}
+function carregarTagsLocal() {
+  try {
+    const s = localStorage.getItem('pataro-tags');
+    if (s) boardTagsCustom = JSON.parse(s);
+    // tags padrão se vazio
+    if (!boardTagsCustom.length) {
+      boardTagsCustom = [
+        {id:'vm', label:'Urgente',    cor:'#b02828'},
+        {id:'am', label:'Aguardando', cor:'#966800'},
+        {id:'az', label:'Reunião',    cor:'#1a56a8'},
+        {id:'lj', label:'Concluído',  cor:'#1a6e42'},
+        {id:'ro', label:'Cliente',    cor:'#8a2070'},
+        {id:'ci', label:'Financeiro', cor:'#0e6e7a'},
+        {id:'pr', label:'Estratégia', cor:'#5a2090'},
+      ];
+      salvarTagsLocal();
+    }
+  } catch(e){}
+}
+carregarTagsLocal();
 
 async function loadAtividades() {
   try {
@@ -1874,7 +1894,23 @@ async function loadAtividades() {
     const snap = await getDocs(query(collection(window.dbRef,'atividades'), orderBy('criado','desc')));
     boardTarefas = snap.docs.map(d => ({id:d.id,...d.data()}));
     boardRender();
-  } catch(e) { console.log('atividades:', e.message); }
+    popularFiltroTags();
+  } catch(e) {
+    // se falhar, mostrar board vazio
+    boardRender();
+    console.log('atividades err:', e.message);
+  }
+}
+
+function popularFiltroTags() {
+  const sel = document.getElementById('ativ-f-tag');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Todas etiquetas</option>';
+  boardTagsCustom.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id; opt.textContent = t.label;
+    sel.appendChild(opt);
+  });
 }
 
 function boardRender() {
@@ -1885,7 +1921,7 @@ function boardRender() {
   const fTag  = (document.getElementById('ativ-f-tag')||{}).value||'';
 
   let tarefas = boardTarefas.filter(t =>
-    (!fResp || t.resp === fResp) &&
+    (!fResp || (t.resp||'').toLowerCase().includes(fResp.toLowerCase())) &&
     (!fPrio || t.prio === fPrio) &&
     (!fTag  || (t.tags||[]).includes(fTag))
   );
@@ -1917,22 +1953,17 @@ function boardRender() {
       const cards = document.createElement('div');
       cards.className = 'board-cards';
 
-      const items = tarefas.filter(t => t.setor === setor.id && t.status === st.id);
-      items.forEach(t => {
-        const card = criarCard(t);
-        cards.appendChild(card);
+      tarefas.filter(t => t.setor === setor.id && t.status === st.id).forEach(t => {
+        cards.appendChild(criarCard(t));
       });
 
       lane.appendChild(cards);
 
-      // botão adicionar
-      if (st.id === 'afazer') {
-        const addBtn = document.createElement('button');
-        addBtn.className = 'board-add-btn';
-        addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:12px"></i> Adicionar tarefa';
-        addBtn.addEventListener('click', () => abrirModalTarefa(setor.id, st.id));
-        lane.appendChild(addBtn);
-      }
+      const addBtn = document.createElement('button');
+      addBtn.className = 'board-add-btn';
+      addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:12px"></i> Adicionar';
+      addBtn.addEventListener('click', () => abrirModalTarefa(setor.id, st.id));
+      lane.appendChild(addBtn);
 
       body.appendChild(lane);
     });
@@ -1942,38 +1973,40 @@ function boardRender() {
   });
 }
 
+function getTagInfo(id) {
+  return boardTagsCustom.find(t => t.id === id) || {label: id, cor: '#888'};
+}
+
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
 function criarCard(t) {
   const card = document.createElement('div');
   card.className = 'board-card prio-' + (t.prio||'baixa');
 
-  // tags
   const tagHtml = (t.tags||[]).map(tg => {
-    const ti = TAGS_INFO[tg];
-    return ti ? `<span class="board-card-tag ${ti.cls}">${ti.label}</span>` : '';
+    const ti = getTagInfo(tg);
+    return `<span class="board-card-tag" style="background:${hexToRgba(ti.cor,.12)};color:${ti.cor}">${ti.label}</span>`;
   }).join('');
 
-  // prazo
   let prazoHtml = '';
   if (t.prazo) {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const prazoD = new Date(t.prazo + 'T00:00:00');
     const diff = Math.ceil((prazoD - hoje) / 86400000);
     const cls = diff < 0 ? 'vencido' : diff === 0 ? 'hoje' : '';
-    const txt = diff < 0 ? `Venceu ${-diff}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
-    prazoHtml = `<span class="board-card-prazo ${cls}"><i class="ti ti-calendar" style="font-size:10px"></i>${txt}</span>`;
+    const txt = diff < 0 ? `Venceu ${-diff}d` : diff === 0 ? 'Hoje' : `${diff}d`;
+    prazoHtml = `<span class="board-card-prazo ${cls}"><i class="ti ti-calendar" style="font-size:10px"></i> ${txt}</span>`;
   }
 
-  // responsável
-  const iniciais = t.resp ? t.resp.substring(0,2).toUpperCase() : '';
+  const iniciais = (t.resp||'').trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
   const respHtml = iniciais ? `<span class="board-card-resp" title="${t.resp}">${iniciais}</span>` : '';
 
   card.innerHTML = `
     <div class="board-card-title">${t.titulo||'Sem título'}</div>
-    <div class="board-card-meta">
-      ${tagHtml}
-      ${prazoHtml}
-      ${respHtml}
-    </div>`;
+    <div class="board-card-meta">${tagHtml}${prazoHtml}${respHtml}</div>`;
 
   card.addEventListener('click', () => abrirModalTarefa(t.setor, t.status, t));
   return card;
@@ -1982,40 +2015,20 @@ function criarCard(t) {
 window.abrirModalTarefa = function(setor, status, tarefa) {
   editandoTarefa = tarefa || null;
   selPrioVal = tarefa?.prio || '';
-  selTags = tarefa?.tags ? [...tarefa.tags] : [];
+  selTagsAtual = tarefa?.tags ? [...tarefa.tags] : [];
 
   document.getElementById('mo-tarefa-tit').textContent = tarefa ? 'Editar tarefa' : 'Nova tarefa';
   document.getElementById('ativ-titulo').value = tarefa?.titulo || '';
   document.getElementById('ativ-desc').value = tarefa?.desc || '';
   document.getElementById('ativ-prazo').value = tarefa?.prazo || '';
+  document.getElementById('ativ-resp').value = tarefa?.resp || '';
   document.getElementById('btn-del-tarefa').style.display = tarefa ? 'flex' : 'none';
 
   const setorSel = document.getElementById('ativ-setor');
-  if (setor) setorSel.value = setor;
-  else setorSel.value = 'cs';
+  setorSel.value = setor || 'cs';
 
   const statusSel = document.getElementById('ativ-status');
-  if (status) statusSel.value = status;
-  else statusSel.value = 'afazer';
-
-  // responsável
-  const respSel = document.getElementById('ativ-resp');
-  respSel.innerHTML = '<option value="">Ninguém</option>';
-  boardUsuarios.forEach(u => {
-    const opt = document.createElement('option');
-    opt.value = u.nome; opt.textContent = u.nome;
-    if (tarefa?.resp === u.nome) opt.selected = true;
-    respSel.appendChild(opt);
-  });
-  // se não tem usuários carregados, adicionar manualmente
-  if (!boardUsuarios.length) {
-    ['CS','Comercial','Marketing','Financeiro','Admin'].forEach(n => {
-      const opt = document.createElement('option');
-      opt.value = n; opt.textContent = n;
-      if (tarefa?.resp === n) opt.selected = true;
-      respSel.appendChild(opt);
-    });
-  }
+  statusSel.value = status || 'afazer';
 
   // prioridade
   document.querySelectorAll('.prio-opt').forEach(b => {
@@ -2023,12 +2036,64 @@ window.abrirModalTarefa = function(setor, status, tarefa) {
     if (b.dataset.prio === selPrioVal) b.classList.add('on-' + selPrioVal);
   });
 
-  // tags
-  document.querySelectorAll('.tag-opt').forEach(el => {
-    el.classList.toggle('on', selTags.includes(el.dataset.tag));
-  });
+  // renderizar tags dinâmicas
+  renderTagPicker();
+
+  // autocomplete de responsáveis usados
+  const usados = [...new Set(boardTarefas.map(t=>t.resp).filter(Boolean))];
+  const dl = document.getElementById('ativ-resp-list');
+  if (dl) {
+    dl.innerHTML = '';
+    usados.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u;
+      dl.appendChild(opt);
+    });
+  }
 
   document.getElementById('mo-tarefa').classList.add('open');
+  setTimeout(() => document.getElementById('ativ-titulo').focus(), 100);
+};
+
+function renderTagPicker() {
+  const picker = document.getElementById('tag-picker-ativo');
+  if (!picker) return;
+  picker.innerHTML = '';
+  boardTagsCustom.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'tag-opt';
+    span.dataset.tag = t.id;
+    span.textContent = t.label;
+    span.style.cssText = `background:${hexToRgba(t.cor,.12)};color:${t.cor}`;
+    if (selTagsAtual.includes(t.id)) {
+      span.classList.add('on');
+      span.style.borderColor = t.cor;
+    }
+    span.addEventListener('click', () => {
+      if (selTagsAtual.includes(t.id)) {
+        selTagsAtual = selTagsAtual.filter(x => x !== t.id);
+        span.classList.remove('on');
+        span.style.borderColor = 'transparent';
+      } else {
+        selTagsAtual.push(t.id);
+        span.classList.add('on');
+        span.style.borderColor = t.cor;
+      }
+    });
+    picker.appendChild(span);
+  });
+}
+
+window.criarNovaTag = function() {
+  const nome = (document.getElementById('nova-tag-nome').value||'').trim();
+  const cor  = document.getElementById('nova-tag-cor').value || '#e69a00';
+  if (!nome) { document.getElementById('nova-tag-nome').focus(); return; }
+  const id = 'tag_' + Date.now();
+  boardTagsCustom.push({id, label: nome, cor});
+  salvarTagsLocal();
+  document.getElementById('nova-tag-nome').value = '';
+  renderTagPicker();
+  popularFiltroTags();
 };
 
 window.selPrio = function(p, el) {
@@ -2037,51 +2102,52 @@ window.selPrio = function(p, el) {
   el.classList.add('on-' + p);
 };
 
-window.toggleTag = function(tag, el) {
-  if (selTags.includes(tag)) {
-    selTags = selTags.filter(t => t !== tag);
-    el.classList.remove('on');
-  } else {
-    selTags.push(tag);
-    el.classList.add('on');
-  }
-};
-
 window.salvarTarefa = async function() {
-  const titulo = document.getElementById('ativ-titulo').value.trim();
-  if (!titulo) { document.getElementById('ativ-titulo').focus(); return; }
+  const titulo = (document.getElementById('ativ-titulo').value||'').trim();
+  if (!titulo) {
+    document.getElementById('ativ-titulo').style.borderColor = 'var(--err)';
+    document.getElementById('ativ-titulo').focus();
+    return;
+  }
+  document.getElementById('ativ-titulo').style.borderColor = '';
 
   const dados = {
     titulo,
-    desc:   document.getElementById('ativ-desc').value.trim(),
+    desc:   (document.getElementById('ativ-desc').value||'').trim(),
     setor:  document.getElementById('ativ-setor').value,
     status: document.getElementById('ativ-status').value,
-    resp:   document.getElementById('ativ-resp').value,
+    resp:   (document.getElementById('ativ-resp').value||'').trim(),
     prazo:  document.getElementById('ativ-prazo').value,
     prio:   selPrioVal || 'baixa',
-    tags:   [...selTags],
+    tags:   [...selTagsAtual],
   };
+
+  const btn = document.querySelector('#mo-tarefa .ib.g');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
   try {
     const {collection, addDoc, doc, updateDoc, serverTimestamp} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (!window.dbRef) return;
+    if (!window.dbRef) { alert('Sem conexão com o banco. Tente recarregar.'); return; }
     if (editandoTarefa?.id) {
       await updateDoc(doc(window.dbRef,'atividades',editandoTarefa.id), {...dados, atualizado: serverTimestamp()});
       const idx = boardTarefas.findIndex(t => t.id === editandoTarefa.id);
       if (idx >= 0) boardTarefas[idx] = {...boardTarefas[idx], ...dados};
     } else {
-      dados.criado = serverTimestamp();
-      const ref = await addDoc(collection(window.dbRef,'atividades'), dados);
+      const ref = await addDoc(collection(window.dbRef,'atividades'), {...dados, criado: serverTimestamp()});
       boardTarefas.unshift({id: ref.id, ...dados});
     }
     fm('mo-tarefa');
     boardRender();
-  } catch(e) { alert('Erro ao salvar: ' + e.message); }
+  } catch(e) {
+    alert('Erro ao salvar: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar'; }
+  }
 };
 
 window.deletarTarefa = async function() {
   if (!editandoTarefa?.id) return;
-  if (!confirm('Excluir esta tarefa?')) return;
+  if (!confirm('Excluir esta tarefa permanentemente?')) return;
   try {
     const {doc, deleteDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     if (window.dbRef) await deleteDoc(doc(window.dbRef,'atividades',editandoTarefa.id));
@@ -2091,23 +2157,8 @@ window.deletarTarefa = async function() {
   } catch(e) { alert('Erro ao excluir: ' + e.message); }
 };
 
-// Carregar usuários do Firebase para o select de responsável
 async function loadUsuariosBoard() {
-  try {
-    const {collection, getDocs} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (!window.dbRef) return;
-    const snap = await getDocs(collection(window.dbRef,'usuarios'));
-    boardUsuarios = snap.docs.map(d => ({id:d.id,...d.data()}));
-    // popular filtro de responsável
-    const sel = document.getElementById('ativ-f-resp');
-    if (sel) {
-      boardUsuarios.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.nome; opt.textContent = u.nome;
-        sel.appendChild(opt);
-      });
-    }
-  } catch(e) {}
+  // não é mais necessário — responsável é campo livre
 }
 
 </script>
@@ -2187,10 +2238,9 @@ async function loadUsuariosBoard() {
       </div>
       <div class="fr">
         <div class="fg">
-          <label>Responsável</label>
-          <select id="ativ-resp">
-            <option value="">Ninguém</option>
-          </select>
+          <label>Responsável <span style="font-size:10px;color:var(--txm);font-weight:400">(digite o nome)</span></label>
+          <input type="text" id="ativ-resp" placeholder="Ex: Letícia, Equipe CS..." list="ativ-resp-list" autocomplete="off">
+          <datalist id="ativ-resp-list"></datalist>
         </div>
         <div class="fg">
           <label>Prazo</label>
@@ -2206,15 +2256,12 @@ async function loadUsuariosBoard() {
         </div>
       </div>
       <div class="fg">
-        <label>Etiquetas</label>
-        <div class="tag-picker">
-          <span class="tag-opt tag-vm" data-tag="vm" onclick="toggleTag('vm',this)">Urgente</span>
-          <span class="tag-opt tag-am" data-tag="am" onclick="toggleTag('am',this)">Aguardando</span>
-          <span class="tag-opt tag-az" data-tag="az" onclick="toggleTag('az',this)">Reunião</span>
-          <span class="tag-opt tag-lj" data-tag="lj" onclick="toggleTag('lj',this)">Concluído</span>
-          <span class="tag-opt tag-ro" data-tag="ro" onclick="toggleTag('ro',this)">Cliente</span>
-          <span class="tag-opt tag-ci" data-tag="ci" onclick="toggleTag('ci',this)">Financeiro</span>
-          <span class="tag-opt tag-pr" data-tag="pr" onclick="toggleTag('pr',this)">Estratégia</span>
+        <label>Etiquetas <span style="font-size:10px;color:var(--txm);font-weight:400">(clique para selecionar ou crie novas)</span></label>
+        <div class="tag-picker" id="tag-picker-ativo"></div>
+        <div style="display:flex;gap:6px;margin-top:.5rem;align-items:center">
+          <input type="text" id="nova-tag-nome" placeholder="Nome da etiqueta" style="flex:1;background:var(--bg);border:0.5px solid var(--bdr);border-radius:6px;padding:5px 9px;color:var(--tx);font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+          <input type="color" id="nova-tag-cor" value="#e69a00" style="width:32px;height:30px;border:0.5px solid var(--bdr);border-radius:6px;cursor:pointer;padding:2px;background:var(--bg)">
+          <button class="ib g" onclick="criarNovaTag()" style="font-size:11px;padding:4px 9px;white-space:nowrap"><i class="ti ti-plus"></i> Criar</button>
         </div>
       </div>
     </div>
