@@ -969,7 +969,10 @@ function activatePanel(p,tit,tag,el) {
   // persistir painel ativo
   try { sessionStorage.setItem('pataro-panel', JSON.stringify({p,tit,tag})); } catch(e){}
   if(p==='cs'||p==='base-alunos') syncNovosAlunos();
-  if(p==='atividades') { loadAtividades(); }
+  if(p==='atividades') { 
+    boardRender(); // renderiza estrutura imediatamente
+    loadAtividades(); // carrega dados do Firebase em seguida
+  }
   if(p==='renovacoes') renderRenov();
   if(p==='alertas') renderAlertas();
   if(p==='interacoes') loadInt();
@@ -1767,10 +1770,7 @@ window.fecharNotif = function(e) {
 };
 calcMetricsCS();
 
-// Expor db para edição
-import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(m=>{
-  window.dbRef = null; // será preenchido após login
-});
+// dbRef já definido no módulo principal (window.dbRef = db)
 
 // ══ EXCLUSÃO DE ALUNO ══
 let _excIdx = null, _excId = null, _excNome = null;
@@ -1887,10 +1887,16 @@ function carregarTagsLocal() {
 }
 carregarTagsLocal();
 
-async function loadAtividades() {
+window.loadAtividades = async function loadAtividades() {
+  // aguardar dbRef ficar disponível (máx 3s)
+  let tentativas = 0;
+  while (!window.dbRef && tentativas < 30) {
+    await new Promise(r => setTimeout(r, 100));
+    tentativas++;
+  }
   try {
     const {collection, getDocs, orderBy, query} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (!window.dbRef) return;
+    if (!window.dbRef) { boardRender(); return; }
     const snap = await getDocs(query(collection(window.dbRef,'atividades'), orderBy('criado','desc')));
     boardTarefas = snap.docs.map(d => ({id:d.id,...d.data()}));
     boardRender();
@@ -1913,7 +1919,7 @@ function popularFiltroTags() {
   });
 }
 
-function boardRender() {
+window.boardRender = function boardRender() {
   const wrap = document.getElementById('board-wrap');
   if (!wrap) return;
   const fResp = (document.getElementById('ativ-f-resp')||{}).value||'';
@@ -2013,6 +2019,8 @@ function criarCard(t) {
 }
 
 window.abrirModalTarefa = function(setor, status, tarefa) {
+  // garantir que board está renderizado
+  if (!document.getElementById('board-wrap')?.children.length) boardRender();
   editandoTarefa = tarefa || null;
   selPrioVal = tarefa?.prio || '';
   selTagsAtual = tarefa?.tags ? [...tarefa.tags] : [];
