@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pataro Treinamentos — Onboarding Trilha</title>
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#e69a00;--gold-l:rgba(230,154,0,0.10);
+  --bg:#0a0a0a;--card:#111;--bdr:#1e1e1e;
+  --tx:#e8e8e5;--txm:#888884;--txl:#3a3a38;
+  --ok:#1f7a4a;--okb:#0a1e12;
+  --err:#b83030;--errb:#1e0a0a;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:0 0 4rem}
+
+/* HEADER */
+.header{background:var(--bg);border-bottom:0.5px solid var(--bdr);padding:1.25rem 2rem;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.header img{width:36px;height:36px;object-fit:contain;border-radius:7px}
+.header-brand{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.header-tag{font-size:10px;color:var(--gold);background:var(--gold-l);border-radius:3px;padding:2px 8px;letter-spacing:.5px;text-transform:uppercase;margin-left:4px}
+
+/* HERO */
+.hero{max-width:640px;margin:0 auto;padding:3rem 1.5rem 1.5rem}
+.hero-label{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:.75rem}
+.hero-title{font-size:28px;font-weight:700;color:#fff;line-height:1.25;letter-spacing:-.5px;margin-bottom:1rem}
+.hero-title span{color:var(--gold)}
+.hero-desc{font-size:14px;color:var(--txm);line-height:1.65}
+.hero-steps{display:flex;gap:6px;margin-top:1.5rem;flex-wrap:wrap}
+.step{background:var(--card);border:0.5px solid var(--bdr);border-radius:8px;padding:.5rem .875rem;font-size:11px;color:var(--txm);display:flex;align-items:center;gap:6px}
+.step i{font-size:13px;color:var(--gold)}
+
+/* PROGRESS */
+.progress-bar-wrap{max-width:640px;margin:1.5rem auto 0;padding:0 1.5rem}
+.progress-track{background:var(--bdr);border-radius:10px;height:3px;overflow:hidden}
+.progress-fill{height:3px;background:var(--gold);border-radius:10px;transition:width .4s}
+.progress-label{font-size:11px;color:var(--txm);margin-top:.5rem;display:flex;justify-content:space-between}
+
+/* FORM */
+.form-wrap{max-width:640px;margin:1.5rem auto 0;padding:0 1.5rem}
+
+.section-card{background:var(--card);border:0.5px solid var(--bdr);border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.section-title{font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:1.25rem;display:flex;align-items:center;gap:6px}
+.section-title i{font-size:14px}
+
+.field{margin-bottom:1.125rem}
+.field:last-child{margin-bottom:0}
+.field label{font-size:12px;color:var(--txm);display:block;margin-bottom:.375rem;font-weight:500}
+.field label .req{color:var(--gold);margin-left:2px}
+.field label .hint{font-size:11px;color:var(--txl);font-weight:400;margin-left:4px}
+.field input,.field select,.field textarea{
+  width:100%;background:#1a1a1a;border:0.5px solid var(--bdr);
+  border-radius:8px;padding:10px 13px;color:var(--tx);
+  font-size:13.5px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border .15s,box-shadow .15s;
+  -webkit-appearance:none;appearance:none;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--gold);box-shadow:0 0 0 3px rgba(230,154,0,.08)
+}
+.field input::placeholder,.field textarea::placeholder{color:var(--txl)}
+.field textarea{resize:vertical;min-height:80px}
+.field .field-note{font-size:11px;color:var(--txl);margin-top:.375rem;line-height:1.4}
+.field-err{font-size:11px;color:var(--err);margin-top:.375rem;display:none}
+.field-err.show{display:block}
+.field.invalid input,.field.invalid select,.field.invalid textarea{border-color:var(--err)}
+
+/* RADIO */
+.radio-group{display:flex;flex-direction:column;gap:.5rem;margin-top:.375rem}
+.radio-opt{display:flex;align-items:center;gap:10px;background:#1a1a1a;border:0.5px solid var(--bdr);border-radius:8px;padding:10px 13px;cursor:pointer;transition:all .15s}
+.radio-opt:hover{border-color:#333}
+.radio-opt.selected{border-color:var(--gold);background:var(--gold-l)}
+.radio-opt input[type=radio]{display:none}
+.radio-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.radio-opt.selected .radio-dot{border-color:var(--gold);background:var(--gold)}
+.radio-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:#000;display:none}
+.radio-opt.selected .radio-dot::after{display:block}
+.radio-label{font-size:13px;color:var(--tx)}
+
+/* 2 cols */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.field-row{grid-template-columns:1fr}}
+
+/* SUBMIT */
+.submit-wrap{max-width:640px;margin:1.5rem auto 0;padding:0 1.5rem}
+.submit-btn{width:100%;background:var(--gold);border:none;border-radius:10px;padding:14px;color:#000;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.3px;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.submit-btn:hover{opacity:.9}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+.submit-note{font-size:11px;color:var(--txl);text-align:center;margin-top:.75rem;line-height:1.5}
+
+/* SUCCESS */
+#success-screen{display:none;max-width:640px;margin:4rem auto;padding:0 1.5rem;text-align:center}
+.success-icon{width:64px;height:64px;background:var(--okb);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:28px;color:var(--ok)}
+.success-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:.75rem}
+.success-desc{font-size:14px;color:var(--txm);line-height:1.65}
+
+/* ERROR BANNER */
+.err-banner{background:var(--errb);border:0.5px solid rgba(184,48,48,.3);border-radius:8px;padding:.875rem 1rem;font-size:12.5px;color:#d07070;display:none;margin-bottom:1rem;display:flex;gap:8px;align-items:flex-start}
+.err-banner.show{display:flex}
+.err-banner i{font-size:15px;flex-shrink:0;margin-top:1px}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+</head>
+<body>
+
+<div class="header">
+  <img src="assets/favicon.png" alt="Pataro" onerror="this.style.display='none'">
+  <span class="header-brand">Pataro Treinamentos</span>
+  <span class="header-tag">Trilha</span>
+</div>
+
+<div class="hero">
+  <div class="hero-label">Onboarding</div>
+  <div class="hero-title">Seja bem-vindo à <span>Trilha!</span></div>
+  <div class="hero-desc">Este formulário é o primeiro passo da sua jornada. Preencha com atenção — as informações compartilhadas aqui serão usadas para personalizar sua experiência e garantir que seu processo de onboarding seja completo e objetivo.</div>
+  <div class="hero-steps">
+    <div class="step"><i class="ti ti-clock"></i> ~5 minutos</div>
+    <div class="step"><i class="ti ti-lock"></i> Dados protegidos</div>
+    <div class="step"><i class="ti ti-check"></i> Resposta única</div>
+  </div>
+</div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="progress-label"><span id="prog-label">0% preenchido</span><span id="prog-fields">0 de 14 campos</span></div>
+</div>
+
+<div class="form-wrap" id="form-wrap">
+
+  <div class="err-banner" id="err-banner">
+    <i class="ti ti-alert-circle"></i>
+    <div id="err-banner-msg">Preencha todos os campos obrigatórios antes de enviar.</div>
+  </div>
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section-card">
+    <div class="section-title"><i class="ti ti-user"></i>Identificação</div>
+    <div class="field" id="f-nome">
+      <label>Nome Completo <span class="req">*</span></label>
+      <input type="text" id="nome" placeholder="Seu nome completo" autocomplete="name">
+      <div class="field-err" id="e-nome">Campo obrigatório.</div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="f-instagram">
+        <label>Instagram Profissional <span class="req">*</span></label>
+        <input type="text" id="instagram" placeholder="@seuperfil">
+        <div class="field-err" id="e-instagram">Campo obrigatório.</div>
+      </div>
+      <div class="field" id="f-escritorio">
+        <label>Nome do escritório <span class="req">*</span></label>
+        <input type="text" id="escritorio" placeholder="Nome do seu escritório">
+        <div class="field-err" id="e-escritorio">Campo obrigatório.</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="f-whatsapp">
+        <label>WhatsApp <span class="req">*</span> <span class="hint">(com DDD)</span></label>
+        <input type="tel" id="whatsapp" placeholder="(00) 00000-0000" autocomplete="tel">
+        <div class="field-err" id="e-whatsapp">Campo obrigatório.</div>
+      </div>
+      <div class="field" id="f-email">
+        <label>E-mail <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+        <div class="field-err" id="e-email">Informe um e-mail válido.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DADOS PESSOAIS -->
+  <div class="section-card">
+    <div class="section-title"><i class="ti ti-id-badge"></i>Dados pessoais</div>
+    <div class="field-row">
+      <div class="field" id="f-rg">
+        <label>RG <span class="req">*</span></label>
+        <input type="text" id="rg" placeholder="00.000.000-0">
+        <div class="field-err" id="e-rg">Campo obrigatório.</div>
+      </div>
+      <div class="field" id="f-cpf">
+        <label>CPF <span class="req">*</span></label>
+        <input type="text" id="cpf" placeholder="000.000.000-00">
+        <div class="field-err" id="e-cpf">Campo obrigatório.</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="f-nascimento">
+        <label>Data de nascimento <span class="req">*</span></label>
+        <input type="date" id="nascimento">
+        <div class="field-err" id="e-nascimento">Campo obrigatório.</div>
+      </div>
+      <div class="field" id="f-nacionalidade">
+        <label>Nacionalidade <span class="req">*</span></label>
+        <input type="text" id="nacionalidade" placeholder="Ex: Brasileiro(a)">
+        <div class="field-err" id="e-nacionalidade">Campo obrigatório.</div>
+      </div>
+    </div>
+    <div class="field" id="f-estado-civil">
+      <label>Estado Civil <span class="req">*</span></label>
+      <div class="radio-group" id="rg-estado-civil">
+        <label class="radio-opt" onclick="selectRadio('estado_civil','Solteiro (a)',this)"><input type="radio" name="estado_civil" value="Solteiro (a)"><div class="radio-dot"></div><span class="radio-label">Solteiro(a)</span></label>
+        <label class="radio-opt" onclick="selectRadio('estado_civil','Casado (a)',this)"><input type="radio" name="estado_civil" value="Casado (a)"><div class="radio-dot"></div><span class="radio-label">Casado(a)</span></label>
+        <label class="radio-opt" onclick="selectRadio('estado_civil','União Estável',this)"><input type="radio" name="estado_civil" value="União Estável"><div class="radio-dot"></div><span class="radio-label">União Estável</span></label>
+        <label class="radio-opt" onclick="selectRadio('estado_civil','Viúvo (a)',this)"><input type="radio" name="estado_civil" value="Viúvo (a)"><div class="radio-dot"></div><span class="radio-label">Viúvo(a)</span></label>
+      </div>
+      <div class="field-err" id="e-estado-civil">Selecione uma opção.</div>
+    </div>
+    <div class="field" id="f-profissao">
+      <label>Profissão <span class="req">*</span></label>
+      <input type="text" id="profissao" placeholder="Ex: Advogado(a)">
+      <div class="field-err" id="e-profissao">Campo obrigatório.</div>
+    </div>
+  </div>
+
+  <!-- ENDEREÇO E FINANCEIRO -->
+  <div class="section-card">
+    <div class="section-title"><i class="ti ti-map-pin"></i>Endereço e informações</div>
+    <div class="field" id="f-endereco">
+      <label>Endereço completo <span class="req">*</span> <span class="hint">(com CEP)</span></label>
+      <textarea id="endereco" placeholder="Rua, número, bairro, cidade, estado, CEP"></textarea>
+      <div class="field-err" id="e-endereco">Campo obrigatório.</div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="f-faturamento">
+        <label>Faturamento Mensal Atual <span class="req">*</span></label>
+        <input type="text" id="faturamento" placeholder="Ex: R$ 15.000">
+        <div class="field-err" id="e-faturamento">Campo obrigatório.</div>
+      </div>
+      <div class="field" id="f-camiseta">
+        <label>Tamanho de camiseta <span class="req">*</span></label>
+        <input type="text" id="camiseta" placeholder="Ex: M babylook ou GG tradicional">
+        <div class="field-note">Informe o tamanho e se prefere babylook ou tradicional.</div>
+        <div class="field-err" id="e-camiseta">Campo obrigatório.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2ª CADEIRA E OBSERVAÇÕES -->
+  <div class="section-card">
+    <div class="section-title"><i class="ti ti-users"></i>Equipe e observações</div>
+    <div class="field" id="f-cadeira">
+      <label>Alguém vai participar da Trilha com você? <span class="req">*</span></label>
+      <textarea id="cadeira" placeholder="Informe o nome e telefone dos integrantes da sua equipe. Se não houver, escreva 'Não possui'."></textarea>
+      <div class="field-note">Especifique o nome e o telefone dos integrantes da sua equipe.</div>
+      <div class="field-err" id="e-cadeira">Campo obrigatório.</div>
+    </div>
+    <div class="field" id="f-observacoes">
+      <label>Existe alguma informação importante que nosso time precise saber? <span class="req">*</span></label>
+      <textarea id="observacoes" placeholder="Compartilhe qualquer informação relevante sobre sua jornada, desafios ou expectativas."></textarea>
+      <div class="field-err" id="e-observacoes">Campo obrigatório.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="submit-wrap">
+  <div class="err-banner" id="err-banner-bottom">
+    <i class="ti ti-alert-circle"></i>
+    <div id="err-banner-bottom-msg">Preencha todos os campos obrigatórios.</div>
+  </div>
+  <button class="submit-btn" id="submit-btn" onclick="enviarFormulario()">
+    <i class="ti ti-send"></i> Enviar formulário
+  </button>
+  <div class="submit-note">Ao enviar, seus dados serão armazenados com segurança e<br>nossa equipe entrará em contato para dar continuidade ao onboarding.</div>
+</div>
+
+<div id="success-screen">
+  <div class="success-icon"><i class="ti ti-check"></i></div>
+  <div class="success-title">Formulário enviado com sucesso!</div>
+  <div class="success-desc">
+    Obrigado por preencher o formulário de onboarding.<br><br>
+    Nossa equipe já recebeu suas informações e entrará em contato em breve para dar continuidade à sua jornada na <strong style="color:var(--gold)">Trilha</strong>.<br><br>
+    Bem-vindo(a) à família Pataro! 🚀
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, addDoc, collection, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyAZv9qudcwG7r57e1UXaulhQcZH1UoFNhM",
+  authDomain: "pataro-treinamentos.firebaseapp.com",
+  projectId: "pataro-treinamentos",
+  storageBucket: "pataro-treinamentos.firebasestorage.app",
+  messagingSenderId: "347245236942",
+  appId: "1:347245236942:web:5bf9ebb5ba3d7d3ec4f69f"
+});
+const db = getFirestore(app);
+
+// Estado do formulário
+const radioValues = { estado_civil: '' };
+
+window.selectRadio = function(field, value, el) {
+  radioValues[field] = value;
+  document.querySelectorAll(`[name="${field}"]`).forEach(r => {
+    r.closest('.radio-opt').classList.remove('selected');
+  });
+  el.classList.add('selected');
+  atualizarProgresso();
+};
+
+// Campos obrigatórios
+const CAMPOS = [
+  {id:'nome',     val:()=>g('nome'),        ok:v=>v.trim().length>=3},
+  {id:'instagram',val:()=>g('instagram'),   ok:v=>v.trim().length>0},
+  {id:'escritorio',val:()=>g('escritorio'), ok:v=>v.trim().length>0},
+  {id:'whatsapp', val:()=>g('whatsapp'),    ok:v=>v.trim().length>=8},
+  {id:'email',    val:()=>g('email'),       ok:v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)},
+  {id:'rg',       val:()=>g('rg'),          ok:v=>v.trim().length>0},
+  {id:'cpf',      val:()=>g('cpf'),         ok:v=>v.trim().length>0},
+  {id:'nascimento',val:()=>g('nascimento'), ok:v=>v.trim().length>0},
+  {id:'nacionalidade',val:()=>g('nacionalidade'),ok:v=>v.trim().length>0},
+  {id:'estado-civil',val:()=>radioValues.estado_civil, ok:v=>v.length>0},
+  {id:'profissao',val:()=>g('profissao'),   ok:v=>v.trim().length>0},
+  {id:'endereco', val:()=>g('endereco'),    ok:v=>v.trim().length>0},
+  {id:'faturamento',val:()=>g('faturamento'),ok:v=>v.trim().length>0},
+  {id:'camiseta', val:()=>g('camiseta'),    ok:v=>v.trim().length>0},
+  {id:'cadeira',  val:()=>g('cadeira'),     ok:v=>v.trim().length>0},
+  {id:'observacoes',val:()=>g('observacoes'),ok:v=>v.trim().length>0},
+];
+
+function g(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+function atualizarProgresso() {
+  const preenchidos = CAMPOS.filter(c => c.ok(c.val())).length;
+  const pct = Math.round((preenchidos / CAMPOS.length) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = pct + '% preenchido';
+  document.getElementById('prog-fields').textContent = preenchidos + ' de ' + CAMPOS.length + ' campos';
+}
+
+// Listener nos inputs para atualizar progresso
+document.querySelectorAll('input,select,textarea').forEach(el => {
+  el.addEventListener('input', atualizarProgresso);
+  el.addEventListener('change', atualizarProgresso);
+});
+
+window.enviarFormulario = async function() {
+  // Validar
+  let valido = true;
+  CAMPOS.forEach(c => {
+    const ok = c.ok(c.val());
+    const fEl = document.getElementById('f-' + c.id);
+    const eEl = document.getElementById('e-' + c.id);
+    if (fEl) fEl.classList.toggle('invalid', !ok);
+    if (eEl) eEl.classList.toggle('show', !ok);
+    if (!ok) valido = false;
+  });
+
+  if (!valido) {
+    const banner = document.getElementById('err-banner-bottom');
+    banner.classList.add('show');
+    document.querySelector('.invalid')?.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
+  document.getElementById('err-banner-bottom').classList.remove('show');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> Enviando...';
+
+  try {
+    await addDoc(collection(db, 'mentorados'), {
+      nome:          g('nome').trim(),
+      instagram:     g('instagram').trim(),
+      escritorio:    g('escritorio').trim(),
+      whatsapp:      g('whatsapp').trim(),
+      email:         g('email').trim(),
+      rg:            g('rg').trim(),
+      cpf:           g('cpf').trim(),
+      nascimento:    g('nascimento'),
+      nacionalidade: g('nacionalidade').trim(),
+      estado_civil:  radioValues.estado_civil,
+      profissao:     g('profissao').trim(),
+      endereco:      g('endereco').trim(),
+      faturamento:   g('faturamento').trim(),
+      camiseta:      g('camiseta').trim(),
+      cadeira:       g('cadeira').trim(),
+      observacoes:   g('observacoes').trim(),
+      // Campos padrão
+      produto:        'Trilha',
+      status:         'Ativo',
+      engajamento:    '',
+      risco_churn:    'Baixo',
+      fin_status:     'Adimplente',
+      retorno_cs:     'Sempre',
+      sdes_mes:       null,
+      renovacao:      null,
+      mes_vencimento: '',
+      status_contato: 'sem_contato',
+      criado:         serverTimestamp(),
+      atualizado:     serverTimestamp(),
+      origem:         'formulario_onboarding',
+    });
+
+    // Sucesso
+    document.getElementById('form-wrap').style.display = 'none';
+    document.querySelector('.hero').style.display = 'none';
+    document.querySelector('.progress-bar-wrap').style.display = 'none';
+    document.querySelector('.submit-wrap').style.display = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-send"></i> Enviar formulário';
+    const banner = document.getElementById('err-banner-bottom');
+    document.getElementById('err-banner-bottom-msg').textContent = 'Erro ao enviar. Tente novamente. (' + e.message + ')';
+    banner.classList.add('show');
+  }
+};
+</script>
+</body>
+</html>
