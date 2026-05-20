@@ -241,6 +241,40 @@ tr:hover td{background:var(--bg)}
 .notif-badge i{font-size:20px;flex-shrink:0}
 .notif-close{background:rgba(0,0,0,.15);border:none;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:auto;flex-shrink:0;font-size:12px;color:#000}
 
+
+/* MODAL CONFIRMAÇÃO EXCLUSÃO */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:600}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--card);border:0.5px solid var(--bdr);border-radius:12px;padding:2rem;width:380px;max-width:95vw;text-align:center}
+.confirm-icon{width:52px;height:52px;background:var(--errb);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:22px;color:var(--err)}
+.confirm-title{font-size:15px;font-weight:600;color:var(--tx);margin-bottom:.5rem}
+.confirm-desc{font-size:12.5px;color:var(--txm);line-height:1.5;margin-bottom:1.5rem}
+.confirm-nome{font-weight:600;color:var(--tx)}
+.confirm-btns{display:flex;gap:8px;justify-content:center}
+.confirm-step2{display:none;margin-top:1rem}
+.confirm-step2.show{display:block}
+.confirm-step2-label{font-size:12px;color:var(--err);margin-bottom:.5rem;font-weight:500}
+.confirm-step2 input{width:100%;background:var(--bg);border:0.5px solid var(--err);border-radius:7px;padding:8px 11px;color:var(--tx);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;text-align:center}
+
+
+/* FILTROS AVANÇADOS */
+.filtros-avancados{background:var(--card);border:0.5px solid var(--bdr);border-radius:8px;padding:1rem;margin-bottom:.875rem;display:none}
+.filtros-avancados.open{display:block}
+.fa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:.75rem}
+.fa-group{display:flex;flex-direction:column;gap:3px}
+.fa-label{font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.3px;font-weight:500}
+.fa-sel{background:var(--bg);border:0.5px solid var(--bdr);border-radius:6px;padding:5px 8px;color:var(--tx);font-size:11.5px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;width:100%}
+.fa-sel:focus{border-color:var(--gold)}
+.fa-divider{height:0.5px;background:var(--bdr);margin:.75rem 0}
+.fa-vazios-title{font-size:11px;font-weight:600;color:var(--tx);margin-bottom:.5rem}
+.fa-vazios-grid{display:flex;gap:6px;flex-wrap:wrap}
+.fa-check{display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--txm);transition:all .12s;user-select:none}
+.fa-check:hover{border-color:var(--gold);color:var(--gold)}
+.fa-check.on{background:var(--errb);border-color:var(--err);color:var(--err)}
+.fa-check input{display:none}
+.filtros-bar-extra{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:.5rem}
+.fa-badge{font-size:10px;background:var(--gold);color:#000;border-radius:10px;padding:1px 7px;font-weight:600}
+
 </style>
 </head>
 <body>
@@ -352,17 +386,14 @@ tr:hover td{background:var(--bg)}
           </div>
         </div>
 
-        <!-- ALERTAS INLINE -->
-        <div class="sec"><i class="ti ti-alert-circle"></i>Alertas<div class="gl"></div></div>
-        <div id="cs-alertas"><div class="loading"><i class="ti ti-loader"></i> Carregando...</div></div>
-
         <!-- FILTROS BASE DE ALUNOS -->
         <div class="sec" style="margin-top:1rem"><i class="ti ti-users"></i>Base de alunos<div class="gl"></div>
           <button class="ib g" style="font-size:10px;padding:3px 8px;margin-left:6px" onclick="abrirModalM()"><i class="ti ti-plus"></i> Novo</button>
         </div>
 
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem">
-          <div class="ba-si" style="min-width:180px;flex:1"><i class="ti ti-search"></i><input id="ba-q" placeholder="Nome, e-mail, telefone, cidade..." oninput="baFiltrar()"></div>
+        <!-- BARRA PRINCIPAL DE FILTROS -->
+        <div class="filtros-bar-extra">
+          <div class="ba-si" style="min-width:180px;flex:1"><i class="ti ti-search"></i><input id="ba-q" placeholder="Nome, e-mail, telefone, instagram, escritório..." oninput="baFiltrar()"></div>
           <select class="bafs" id="ba-prod" onchange="baFiltrar()">
             <option value="">Todos os produtos</option>
             <option value="Trilha">Trilha</option>
@@ -381,15 +412,108 @@ tr:hover td{background:var(--bg)}
             <option value="">Risco churn</option>
             <option value="Alto">Alto risco</option>
             <option value="Baixo">Baixo risco</option>
+            <option value="Variável">Variável</option>
           </select>
           <select class="bafs" id="ba-fin" onchange="baFiltrar()">
             <option value="">Financeiro</option>
             <option value="Adimplente">Adimplente</option>
             <option value="Inadimplente">Inadimplente</option>
           </select>
+          <button class="ib" onclick="toggleFiltrosAvancados()" id="btn-filtros-av" style="font-size:10px;padding:3px 8px;position:relative">
+            <i class="ti ti-adjustments-horizontal"></i> Filtros avançados
+            <span class="fa-badge" id="fa-badge" style="display:none">0</span>
+          </button>
           <button class="ib" onclick="baLimpar()" style="font-size:10px;padding:3px 8px"><i class="ti ti-x"></i> Limpar</button>
           <button class="ib g" onclick="baExcel()" style="font-size:10px;padding:3px 8px"><i class="ti ti-file-spreadsheet"></i> Excel</button>
           <span style="font-size:11px;color:var(--txm);white-space:nowrap;align-self:center" id="ba-cnt"></span>
+        </div>
+
+        <!-- FILTROS AVANÇADOS -->
+        <div class="filtros-avancados" id="filtros-avancados">
+          <div class="fa-grid">
+            <div class="fa-group">
+              <div class="fa-label">Engajamento</div>
+              <select class="fa-sel" id="fa-eng" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="Alto">Alto</option>
+                <option value="Variável">Variável</option>
+                <option value="Baixo">Baixo</option>
+              </select>
+            </div>
+            <div class="fa-group">
+              <div class="fa-label">Retorno ao CS</div>
+              <select class="fa-sel" id="fa-ret" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="Sempre">Sempre</option>
+                <option value="Às vezes">Às vezes</option>
+                <option value="Raramente">Raramente</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </div>
+            <div class="fa-group">
+              <div class="fa-label">Status contato</div>
+              <select class="fa-sel" id="fa-contato" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="sem_contato">Sem contato</option>
+                <option value="em_conversa">Em conversa</option>
+                <option value="renovado">Renovado</option>
+              </select>
+            </div>
+            <div class="fa-group">
+              <div class="fa-label">Estado civil</div>
+              <select class="fa-sel" id="fa-civil" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="Solteiro (a)">Solteiro(a)</option>
+                <option value="Casado (a)">Casado(a)</option>
+                <option value="União Estável">União Estável</option>
+                <option value="Viúvo (a)">Viúvo(a)</option>
+              </select>
+            </div>
+            <div class="fa-group">
+              <div class="fa-label">Mês de renovação</div>
+              <select class="fa-sel" id="fa-mes-renov" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Março</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="fa-group">
+              <div class="fa-label">2ª cadeira</div>
+              <select class="fa-sel" id="fa-cadeira" onchange="baFiltrar()">
+                <option value="">Todos</option>
+                <option value="com">Com 2ª cadeira</option>
+                <option value="sem">Sem 2ª cadeira</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fa-divider"></div>
+
+          <div class="fa-vazios-title"><i class="ti ti-eye-off" style="font-size:12px;color:var(--gold);margin-right:4px"></i>Mostrar apenas registros com campo vazio</div>
+          <div class="fa-vazios-grid">
+            <label class="fa-check" id="fv-whatsapp"><input type="checkbox" onchange="baFiltrar()"> WhatsApp vazio</label>
+            <label class="fa-check" id="fv-email"><input type="checkbox" onchange="baFiltrar()"> E-mail vazio</label>
+            <label class="fa-check" id="fv-instagram"><input type="checkbox" onchange="baFiltrar()"> Instagram vazio</label>
+            <label class="fa-check" id="fv-cpf"><input type="checkbox" onchange="baFiltrar()"> CPF vazio</label>
+            <label class="fa-check" id="fv-rg"><input type="checkbox" onchange="baFiltrar()"> RG vazio</label>
+            <label class="fa-check" id="fv-endereco"><input type="checkbox" onchange="baFiltrar()"> Endereço vazio</label>
+            <label class="fa-check" id="fv-renovacao"><input type="checkbox" onchange="baFiltrar()"> Renovação vazia</label>
+            <label class="fa-check" id="fv-engajamento"><input type="checkbox" onchange="baFiltrar()"> Engajamento vazio</label>
+            <label class="fa-check" id="fv-faturamento"><input type="checkbox" onchange="baFiltrar()"> Faturamento vazio</label>
+            <label class="fa-check" id="fv-camiseta"><input type="checkbox" onchange="baFiltrar()"> Camiseta vazio</label>
+            <label class="fa-check" id="fv-nascimento"><input type="checkbox" onchange="baFiltrar()"> Nascimento vazio</label>
+            <label class="fa-check" id="fv-profissao"><input type="checkbox" onchange="baFiltrar()"> Profissão vazia</label>
+          </div>
         </div>
 
         <!-- STATS -->
@@ -397,13 +521,14 @@ tr:hover td{background:var(--bg)}
 
         <!-- TABELA PRINCIPAL -->
         <div class="ba-tc">
-          <div class="ba-hdr" style="grid-template-columns:2fr 1fr 1.6fr 0.8fr 0.8fr 0.8fr 32px">
+          <div class="ba-hdr" style="grid-template-columns:2fr 1fr 1.6fr 0.8fr 0.8fr 0.8fr 32px 32px">
             <div class="ba-th">Aluno</div>
             <div class="ba-th">Telefone</div>
             <div class="ba-th">E-mail</div>
             <div class="ba-th">Produto</div>
             <div class="ba-th">Saúde</div>
             <div class="ba-th">Status</div>
+            <div class="ba-th"></div>
             <div class="ba-th"></div>
           </div>
           <div id="ba-body"></div>
@@ -650,7 +775,6 @@ const db   = getFirestore(app);
 
 let ME = null, todosM = [], csvRows = [], editId = null;
 window.dbRef = db;
-  setTimeout(syncNovosAlunos, 1500); // sincronizar novos alunos do formulário
 
 /* ── NAV ── */
 const NAV = {
@@ -703,7 +827,7 @@ window.recuperarSenha = async () => {
   await sendPasswordResetEmail(auth,em);
   const el=document.getElementById('l-err'); el.textContent='E-mail enviado!'; el.style.color='var(--ok)'; el.classList.add('show');
 };
-window.fazerLogout = async () => { await signOut(auth); showLogin(); };
+window.fazerLogout = async () => { await signOut(auth); try{sessionStorage.removeItem('pataro-panel');}catch(e){} showLogin(); };
 document.getElementById('l-senha').addEventListener('keydown', e => { if(e.key==='Enter') window.fazerLogin(); });
 
 function lerr(msg) { const e=document.getElementById('l-err'); e.textContent=msg; e.style.color='#e07070'; e.classList.add('show'); }
@@ -745,6 +869,8 @@ function activatePanel(p,tit,tag,el) {
   if(panel) panel.classList.add('on');
   document.getElementById('tb-tit').textContent=tit;
   document.getElementById('tb-tag').textContent=tag;
+  // persistir painel ativo
+  try { sessionStorage.setItem('pataro-panel', JSON.stringify({p,tit,tag})); } catch(e){}
   if(p==='cs'||p==='base-alunos') syncNovosAlunos();
   if(p==='renovacoes') renderRenov();
   if(p==='alertas') renderAlertas();
@@ -763,6 +889,8 @@ async function loadAll() {
   loadComercial();
   loadMarketing();
   loadCob();
+  // sincronizar novos alunos do formulário após tudo carregado
+  setTimeout(syncNovosAlunos, 800);
 }
 
 /* ── MENTORADOS ── */
@@ -1146,6 +1274,7 @@ function baRender(lista) {
       <div class="ba-td"><div class="swrap2"><div class="sbar2"><div class="sfill2 ${bc}" style="width:${s}%"></div></div><span style="font-size:10px;color:var(--txm)">${s}%</span></div></div>
       <div class="ba-td"><span class="b ${stB}">${a.status||'-'}</span></div>
       <div class="ba-td" style="display:flex;align-items:center;justify-content:center"><i class="ti ti-chevron-right" style="color:var(--txl);font-size:14px"></i></div>
+      <div class="ba-td" style="display:flex;align-items:center;justify-content:center"><button class="ib" style="padding:3px 6px;font-size:11px;border-color:var(--errb);color:var(--err)" onclick="event.stopPropagation();abrirConfirmExclusao(${i},'${a.nome.replace(/'/g,"\\'")}','${a.id||''}')"><i class="ti ti-trash"></i></button></div>
     </div>`;
   }).join('');
   window._baLista = lista;
@@ -1169,21 +1298,88 @@ function baStats(lista) {
 }
 
 function baFiltrar() {
-  const q=document.getElementById('ba-q').value.toLowerCase();
-  const prod=document.getElementById('ba-prod').value;
-  const stat=document.getElementById('ba-stat').value;
-  const eng=document.getElementById('ba-eng').value;
-  const churn=document.getElementById('ba-churn').value;
-  const fin=document.getElementById('ba-fin').value;
-  baFiltrados=baTodos.filter(a=>
-    (!q||[a.nome,a.email,a.whatsapp,a.endereco,a.instagram,a.profissao,a.escritorio].some(v=>(v||'').toLowerCase().includes(q)))&&
-    (!prod||a.produto===prod)&&(!stat||a.status===stat)&&
-    (!eng||a.engajamento===eng)&&(!churn||a.risco_churn===churn)&&(!fin||a.fin_status===fin)
-  );
+  const q       = document.getElementById('ba-q').value.toLowerCase();
+  const prod    = document.getElementById('ba-prod').value;
+  const stat    = document.getElementById('ba-stat').value;
+  const churn   = document.getElementById('ba-churn').value;
+  const fin     = document.getElementById('ba-fin').value;
+  // avançados seleção
+  const eng     = (document.getElementById('fa-eng')||{}).value||'';
+  const ret     = (document.getElementById('fa-ret')||{}).value||'';
+  const contato = (document.getElementById('fa-contato')||{}).value||'';
+  const civil   = (document.getElementById('fa-civil')||{}).value||'';
+  const mesRenov= (document.getElementById('fa-mes-renov')||{}).value||'';
+  const cadeiraF= (document.getElementById('fa-cadeira')||{}).value||'';
+  // avançados vazios
+  const fvGet = id => { const el=document.getElementById(id); return el?el.querySelector('input').checked:false; };
+  const vz = {
+    whatsapp:   fvGet('fv-whatsapp'),
+    email:      fvGet('fv-email'),
+    instagram:  fvGet('fv-instagram'),
+    cpf:        fvGet('fv-cpf'),
+    rg:         fvGet('fv-rg'),
+    endereco:   fvGet('fv-endereco'),
+    renovacao:  fvGet('fv-renovacao'),
+    engajamento:fvGet('fv-engajamento'),
+    faturamento:fvGet('fv-faturamento'),
+    camiseta:   fvGet('fv-camiseta'),
+    nascimento: fvGet('fv-nascimento'),
+    profissao:  fvGet('fv-profissao'),
+  };
+  const vazio = v => !v || v.trim()==='' || v==='-' || v.toLowerCase()==='sem cadastro';
+
+  baFiltrados = baTodos.filter(a => {
+    if (q && ![a.nome,a.email,a.whatsapp,a.endereco,a.instagram,a.profissao,a.escritorio,a.cpf,a.rg,a.instagram].some(v=>(v||'').toLowerCase().includes(q))) return false;
+    if (prod    && a.produto !== prod) return false;
+    if (stat    && a.status  !== stat) return false;
+    if (churn   && a.risco_churn !== churn) return false;
+    if (fin     && a.fin_status  !== fin) return false;
+    if (eng     && a.engajamento !== eng) return false;
+    if (ret     && a.retorno_cs  !== ret) return false;
+    if (contato && a.status_contato !== contato) return false;
+    if (civil   && a.estado_civil !== civil) return false;
+    if (mesRenov && !(a.renovacao||'').includes('-'+mesRenov+'-')) return false;
+    if (cadeiraF === 'com'  && vazio(a.cadeira)) return false;
+    if (cadeiraF === 'sem'  && !vazio(a.cadeira)) return false;
+    // filtros de campo vazio
+    if (vz.whatsapp   && !vazio(a.whatsapp))   return false;
+    if (vz.email      && !vazio(a.email))      return false;
+    if (vz.instagram  && !vazio(a.instagram))  return false;
+    if (vz.cpf        && !vazio(a.cpf))        return false;
+    if (vz.rg         && !vazio(a.rg))         return false;
+    if (vz.endereco   && !vazio(a.endereco))   return false;
+    if (vz.renovacao  && !vazio(a.renovacao))  return false;
+    if (vz.engajamento&& !vazio(a.engajamento))return false;
+    if (vz.faturamento&& !vazio(a.faturamento))return false;
+    if (vz.camiseta   && !vazio(a.camiseta))   return false;
+    if (vz.nascimento && !vazio(a.nascimento)) return false;
+    if (vz.profissao  && !vazio(a.profissao))  return false;
+    return true;
+  });
+
+  // atualizar badge de filtros ativos
+  const ativos = [prod,stat,churn,fin,eng,ret,contato,civil,mesRenov,cadeiraF].filter(Boolean).length
+    + Object.values(vz).filter(Boolean).length;
+  const badge = document.getElementById('fa-badge');
+  if (badge) { badge.textContent=ativos; badge.style.display=ativos>0?'inline':'none'; }
+  // highlight nos checks ativos
+  Object.keys(vz).forEach(k => {
+    const el = document.getElementById('fv-'+k);
+    if (el) el.classList.toggle('on', vz[k]);
+  });
+
   baRender(baFiltrados);
 }
 
-function baLimpar(){document.getElementById('ba-q').value='';['ba-prod','ba-stat','ba-eng','ba-churn','ba-fin'].forEach(id=>document.getElementById(id).value='');baFiltrar();}
+function baLimpar(){
+  document.getElementById('ba-q').value='';
+  ['ba-prod','ba-stat','ba-churn','ba-fin','fa-eng','fa-ret','fa-contato','fa-civil','fa-mes-renov','fa-cadeira'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['fv-whatsapp','fv-email','fv-instagram','fv-cpf','fv-rg','fv-endereco','fv-renovacao','fv-engajamento','fv-faturamento','fv-camiseta','fv-nascimento','fv-profissao'].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.querySelector('input').checked=false;el.classList.remove('on');}
+  });
+  const badge=document.getElementById('fa-badge'); if(badge)badge.style.display='none';
+  baFiltrar();
+}
 
 // ── PERFIL / EDIÇÃO ──
 function baAbrirPerfil(idx) {
@@ -1454,6 +1650,31 @@ import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(
     <div style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px">Clique para ver o perfil</div>
   </div>
   <button class="notif-close" onclick="fecharNotif(event)"><i class="ti ti-x"></i></button>
+</div>
+
+
+<!-- MODAL CONFIRMAÇÃO EXCLUSÃO -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon"><i class="ti ti-trash"></i></div>
+    <div class="confirm-title">Excluir mentorado?</div>
+    <div class="confirm-desc">
+      Você está prestes a excluir <span class="confirm-nome" id="confirm-nome-txt"></span> da base.<br>
+      Esta ação não pode ser desfeita.
+    </div>
+    <div class="confirm-btns">
+      <button class="ib" onclick="fecharConfirm()">Cancelar</button>
+      <button class="ib" style="background:var(--errb);border-color:var(--err);color:var(--err)" onclick="confirmarStep2()"><i class="ti ti-trash"></i> Excluir</button>
+    </div>
+    <div class="confirm-step2" id="confirm-step2">
+      <div class="confirm-step2-label">⚠ Para confirmar, digite EXCLUIR abaixo:</div>
+      <input type="text" id="confirm-input" placeholder="EXCLUIR" oninput="verificarConfirm()">
+      <div style="margin-top:.875rem;display:flex;gap:8px;justify-content:center">
+        <button class="ib" onclick="fecharConfirm()">Cancelar</button>
+        <button class="ib" id="confirm-final-btn" style="background:var(--err);border-color:var(--err);color:#fff;opacity:.4" disabled onclick="executarExclusao()"><i class="ti ti-trash"></i> Confirmar exclusão</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 </body>
