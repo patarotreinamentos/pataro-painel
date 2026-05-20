@@ -129,6 +129,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="progress-label"><span id="prog-label">0% preenchido</span><span id="prog-fields">0 de 14 campos</span></div>
 </div>
 
+
+<!-- Banner rascunho -->
+<div id="rascunho-banner" style="display:none;max-width:640px;margin:.75rem auto 0;padding:0 1.5rem">
+  <div style="background:var(--gold-l);border:0.5px solid rgba(230,154,0,.3);border-radius:8px;padding:.75rem 1rem;font-size:12px;color:var(--gold);display:flex;align-items:center;gap:8px">
+    <i class="ti ti-refresh" style="font-size:14px;flex-shrink:0"></i>
+    <div>Suas respostas anteriores foram restauradas automaticamente.</div>
+    <button onclick="document.getElementById('rascunho-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--gold);margin-left:auto;font-size:14px"><i class="ti ti-x"></i></button>
+  </div>
+</div>
+
 <div class="form-wrap" id="form-wrap">
 
   <div class="err-banner" id="err-banner">
@@ -293,6 +303,8 @@ const db = getFirestore(app);
 
 // Estado do formulário
 const radioValues = { estado_civil: '' };
+  // restaurar estado civil salvo
+  try { const r=sessionStorage.getItem('pataro-form-rascunho'); if(r){const d=JSON.parse(r); if(d.estado_civil) radioValues.estado_civil=d.estado_civil;} } catch(e) {}
 
 window.selectRadio = function(field, value, el) {
   radioValues[field] = value;
@@ -401,6 +413,7 @@ window.enviarFormulario = async function() {
     });
 
     // Sucesso
+    window.limparRascunho();
     document.getElementById('form-wrap').style.display = 'none';
     document.querySelector('.hero').style.display = 'none';
     document.querySelector('.progress-bar-wrap').style.display = 'none';
@@ -417,5 +430,87 @@ window.enviarFormulario = async function() {
   }
 };
 </script>
+
+<script>
+// ── RASCUNHO EM sessionStorage ──
+const CAMPOS_SALVAR = ['nome','instagram','escritorio','whatsapp','email','rg','cpf','nascimento','nacionalidade','profissao','endereco','faturamento','camiseta','cadeira','observacoes'];
+const CHAVE = 'pataro-form-rascunho';
+
+function salvarRascunho() {
+  const dados = {};
+  CAMPOS_SALVAR.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) dados[id] = el.value;
+  });
+  // salvar estado civil
+  const radios = document.querySelectorAll('[name="estado_civil"]');
+  radios.forEach(r => { if (r.closest('.radio-opt.selected')) dados['estado_civil'] = r.value; });
+  try { sessionStorage.setItem(CHAVE, JSON.stringify(dados)); } catch(e) {}
+}
+
+function restaurarRascunho() {
+  try {
+    const raw = sessionStorage.getItem(CHAVE);
+    if (!raw) return;
+    const dados = JSON.parse(raw);
+    CAMPOS_SALVAR.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && dados[id]) el.value = dados[id];
+    });
+    if (dados.estado_civil) {
+      document.querySelectorAll('[name="estado_civil"]').forEach(r => {
+        if (r.value === dados.estado_civil) {
+          const opt = r.closest('.radio-opt');
+          if (opt) {
+            opt.classList.add('selected');
+            // simular seleção
+            if (typeof selectRadio === 'function') {
+              // chamar depois que selectRadio estiver definido
+            }
+          }
+        }
+      });
+      // restaurar valor no radioValues
+      window._savedEstadoCivil = dados.estado_civil;
+    }
+    // mostrar banner de rascunho restaurado
+    const banner = document.getElementById('rascunho-banner');
+    if (banner) banner.style.display = 'flex';
+  } catch(e) {}
+}
+
+// Auto-salvar a cada 2s
+setInterval(salvarRascunho, 2000);
+
+// Salvar ao digitar
+document.addEventListener('input', salvarRascunho);
+document.addEventListener('change', salvarRascunho);
+
+// Restaurar ao carregar
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    restaurarRascunho();
+    // restaurar estado civil
+    if (window._savedEstadoCivil) {
+      document.querySelectorAll('[name="estado_civil"]').forEach(r => {
+        if (r.value === window._savedEstadoCivil) {
+          const opt = r.closest('.radio-opt');
+          if (opt) {
+            opt.classList.add('selected');
+          }
+        }
+      });
+      if (window.radioValues) window.radioValues.estado_civil = window._savedEstadoCivil;
+    }
+    atualizarProgresso();
+  }, 200);
+});
+
+// Limpar rascunho ao enviar com sucesso (chamado no módulo principal)
+window.limparRascunho = () => {
+  try { sessionStorage.removeItem(CHAVE); } catch(e) {}
+};
+</script>
+
 </body>
 </html>
