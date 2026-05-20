@@ -1282,7 +1282,7 @@ function baRender(lista) {
       <div class="ba-td"><div class="swrap2"><div class="sbar2"><div class="sfill2 ${bc}" style="width:${s}%"></div></div><span style="font-size:10px;color:var(--txm)">${s}%</span></div></div>
       <div class="ba-td"><span class="b ${stB}">${a.status||'-'}</span></div>
       <div class="ba-td" style="display:flex;align-items:center;justify-content:center;gap:4px">
-        <button class="ib" style="padding:3px 6px;font-size:11px;border-color:transparent;color:var(--err);background:none" onclick="event.stopPropagation();abrirConfirmExclusao(${i},'${a.nome.replace(/'/g,"\\'")}','${a.id||''}')"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        <button class="ib" style="padding:3px 6px;font-size:11px;border-color:transparent;color:var(--err);background:none" onclick="event.stopPropagation();abrirConfirmExclusao(${i})"><i class="ti ti-trash" style="font-size:13px"></i></button>
         <i class="ti ti-chevron-right" style="color:var(--txl);font-size:13px"></i>
       </div>
     </div>`;
@@ -1649,6 +1649,75 @@ calcMetricsCS();
 import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(m=>{
   window.dbRef = null; // será preenchido após login
 });
+
+// ══ EXCLUSÃO DE ALUNO ══
+let _excIdx = null, _excId = null, _excNome = null;
+
+window.abrirConfirmExclusao = function(idx) {
+  const lista = window._baLista || baTodos;
+  const a = lista[idx];
+  if (!a) return;
+  _excIdx = idx; _excId = a.id || null; _excNome = a.nome;
+  document.getElementById('confirm-nome-txt').textContent = a.nome || 'este aluno';
+  document.getElementById('confirm-step2').classList.remove('show');
+  const ci = document.getElementById('confirm-input');
+  if (ci) { ci.value = ''; }
+  const fb = document.getElementById('confirm-final-btn');
+  if (fb) { fb.disabled = true; fb.style.opacity = '.4'; }
+  document.getElementById('confirm-overlay').classList.add('open');
+};
+
+window.confirmarStep2 = function() {
+  document.getElementById('confirm-step2').classList.add('show');
+  const ci = document.getElementById('confirm-input');
+  if (ci) ci.focus();
+};
+
+window.verificarConfirm = function() {
+  const val = (document.getElementById('confirm-input').value||'').trim();
+  const btn = document.getElementById('confirm-final-btn');
+  const ok = val === 'EXCLUIR';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.4';
+};
+
+window.fecharConfirm = function() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  _excIdx = null; _excId = null; _excNome = null;
+};
+
+window.executarExclusao = async function() {
+  if (_excIdx === null) return;
+  const lista = window._baLista || baTodos;
+  // remover da lista filtrada
+  const idxNaLista = lista.findIndex((a, i) => i === _excIdx);
+  if (idxNaLista >= 0) lista.splice(idxNaLista, 1);
+  // remover do baTodos
+  const idxGlobal = baTodos.findIndex(a => a.nome === _excNome && (a.id === _excId || (!a.id && !_excId)));
+  if (idxGlobal >= 0) baTodos.splice(idxGlobal, 1);
+  baFiltrados = baFiltrados.filter(a => !(a.nome === _excNome && (a.id === _excId || (!a.id && !_excId))));
+  window._baLista = lista;
+  baRender(lista);
+  if (typeof calcMetricsCS === 'function') calcMetricsCS();
+  window.fecharConfirm();
+  // excluir do Firebase se tiver ID
+  if (_excId) {
+    try {
+      const {doc, deleteDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      if (window.dbRef) await deleteDoc(doc(window.dbRef, 'mentorados', _excId));
+    } catch(e) { console.log('Erro Firebase:', e.message); }
+  }
+};
+
+window.toggleFiltrosAvancados = function() {
+  const el = document.getElementById('filtros-avancados');
+  const btn = document.getElementById('btn-filtros-av');
+  if (el) {
+    el.classList.toggle('open');
+    if (btn) btn.style.borderColor = el.classList.contains('open') ? 'var(--gold)' : 'var(--bdr)';
+  }
+};
+
 </script>
 
 
