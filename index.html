@@ -233,6 +233,14 @@ tr:hover td{background:var(--bg)}
 .ba-row:last-child{border-bottom:none}
 .ba-row:hover{background:var(--bg)}
 .ba-td{padding:7px 10px;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* NOTIFICAÇÃO NOVO ALUNO */
+.notif-badge{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--gold);color:#000;border-radius:12px;padding:.875rem 1.25rem;display:none;align-items:center;gap:10px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:999;cursor:pointer;transition:all .2s;max-width:320px}
+.notif-badge.show{display:flex}
+.notif-badge:hover{opacity:.9;transform:translateY(-2px)}
+.notif-badge i{font-size:20px;flex-shrink:0}
+.notif-close{background:rgba(0,0,0,.15);border:none;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:auto;flex-shrink:0;font-size:12px;color:#000}
+
 </style>
 </head>
 <body>
@@ -642,6 +650,7 @@ const db   = getFirestore(app);
 
 let ME = null, todosM = [], csvRows = [], editId = null;
 window.dbRef = db;
+  setTimeout(syncNovosAlunos, 1500); // sincronizar novos alunos do formulário
 
 /* ── NAV ── */
 const NAV = {
@@ -736,6 +745,7 @@ function activatePanel(p,tit,tag,el) {
   if(panel) panel.classList.add('on');
   document.getElementById('tb-tit').textContent=tit;
   document.getElementById('tb-tag').textContent=tag;
+  if(p==='cs'||p==='base-alunos') syncNovosAlunos();
   if(p==='renovacoes') renderRenov();
   if(p==='alertas') renderAlertas();
   if(p==='interacoes') loadInt();
@@ -1358,8 +1368,75 @@ function baExcel() {
   XLSX.writeFile(wb,'Base_Alunos_Pataro.xlsx');
 }
 
-// Iniciar base
+// Iniciar base com dados locais
 baRender(baTodos);
+
+// Buscar novos alunos do Firebase (origem formulário) e adicionar à base
+async function syncNovosAlunos() {
+  try {
+    const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    if (!window.dbRef) return;
+    const snap = await getDocs(
+      query(collection(window.dbRef, 'mentorados'),
+        where('origem', '==', 'formulario_onboarding')
+      )
+    );
+    if (snap.empty) return;
+    const novos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // filtrar para não duplicar quem já está na BA_BASE pelo email
+    const emailsBase = new Set(BA_BASE.map(a => (a.email||'').toLowerCase()));
+    const reaisNovos = novos.filter(a => {
+      const em = (a.email||'').toLowerCase();
+      return em && !emailsBase.has(em);
+    });
+    if (reaisNovos.length > 0) {
+      // Adicionar ao início da lista
+      baTodos = [...reaisNovos, ...baTodos];
+      baFiltrados = [...baTodos];
+      baRender(baFiltrados);
+      calcMetricsCS();
+      // Notificação para o mais recente
+      const mais = reaisNovos[0];
+      const notif = document.getElementById('notif-novo-aluno');
+      const nomeEl = document.getElementById('notif-nome');
+      if (notif && nomeEl) {
+        nomeEl.textContent = mais.nome || 'Novo aluno cadastrado';
+        notif.classList.add('show');
+        window._novoAlunoNome = mais.nome;
+        // Auto-fechar em 10s
+        setTimeout(() => notif.classList.remove('show'), 10000);
+      }
+    }
+  } catch(e) { console.log('sync novos alunos:', e.message); }
+}
+
+window.irParaNovoAluno = function() {
+  const notif = document.getElementById('notif-novo-aluno');
+  if (notif) notif.classList.remove('show');
+  // navegar para CS e abrir o primeiro aluno
+  const navEl = document.querySelector('.ni[data-panel="cs"]');
+  if (navEl) {
+    activatePanel('cs', 'DASHBOARD', 'CS', navEl);
+    // scroll ao topo da tabela
+    setTimeout(() => {
+      const firstRow = document.querySelector('#ba-body .ba-row');
+      if (firstRow) {
+        firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // abrir perfil do primeiro
+        const nome = window._novoAlunoNome;
+        if (nome) {
+          const idx = baTodos.findIndex(a => a.nome === nome);
+          if (idx >= 0) baAbrirPerfil(idx);
+        }
+      }
+    }, 300);
+  }
+};
+
+window.fecharNotif = function(e) {
+  e.stopPropagation();
+  document.getElementById('notif-novo-aluno').classList.remove('show');
+};
 calcMetricsCS();
 
 // Expor db para edição
@@ -1367,6 +1444,17 @@ import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(
   window.dbRef = null; // será preenchido após login
 });
 </script>
+
+
+<!-- NOTIFICAÇÃO NOVO ALUNO -->
+<div class="notif-badge" id="notif-novo-aluno" onclick="irParaNovoAluno()">
+  <i class="ti ti-user-plus"></i>
+  <div>
+    <div id="notif-nome">Novo aluno cadastrado</div>
+    <div style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px">Clique para ver o perfil</div>
+  </div>
+  <button class="notif-close" onclick="fecharNotif(event)"><i class="ti ti-x"></i></button>
+</div>
 
 </body>
 </html>
