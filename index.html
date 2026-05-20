@@ -275,6 +275,51 @@ tr:hover td{background:var(--bg)}
 .filtros-bar-extra{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:.5rem}
 .fa-badge{font-size:10px;background:var(--gold);color:#000;border-radius:10px;padding:1px 7px;font-weight:600}
 
+
+/* BOARD ATIVIDADES */
+.board-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;min-height:60vh}
+.board-col{min-width:260px;width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:0}
+.board-col-hdr{padding:.625rem .875rem;border-radius:8px 8px 0 0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.board-col-hdr .col-count{font-size:10px;background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px;font-weight:500}
+.board-col-body{background:var(--bg);border:0.5px solid var(--bdr);border-top:none;border-radius:0 0 8px 8px;padding:.5rem;display:flex;flex-direction:column;gap:6px;flex:1}
+.board-swimlane{margin-bottom:.25rem}
+.board-swimlane-lbl{font-size:9px;color:var(--txl);text-transform:uppercase;letter-spacing:.5px;padding:.25rem .25rem .375rem;display:flex;align-items:center;gap:5px}
+.board-swimlane-lbl::after{content:'';flex:1;height:0.5px;background:var(--bdr)}
+.board-cards{display:flex;flex-direction:column;gap:5px;min-height:32px}
+.board-card{background:var(--card);border:0.5px solid var(--bdr);border-radius:7px;padding:.625rem .75rem;cursor:pointer;transition:all .15s;border-left:2.5px solid var(--bdr)}
+.board-card:hover{border-color:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.board-card.prio-alta{border-left-color:var(--err)}
+.board-card.prio-media{border-left-color:var(--warn)}
+.board-card.prio-baixa{border-left-color:var(--ok)}
+.board-card-title{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:.375rem;line-height:1.3}
+.board-card-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.board-card-tag{font-size:9px;padding:1px 6px;border-radius:10px;font-weight:500}
+.board-card-prazo{font-size:10px;color:var(--txm);display:flex;align-items:center;gap:3px}
+.board-card-prazo.vencido{color:var(--err)}
+.board-card-prazo.hoje{color:var(--warn)}
+.board-card-resp{width:20px;height:20px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#000;flex-shrink:0;margin-left:auto}
+.board-add-btn{background:none;border:0.5px dashed var(--bdr);border-radius:6px;padding:6px;font-size:11px;color:var(--txm);cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:5px;transition:all .15s;margin-top:2px}
+.board-add-btn:hover{border-color:var(--gold);color:var(--gold)}
+.board-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+
+/* ETIQUETAS */
+.tag-vm{background:#fce8e8;color:#b02828}.tag-lj{background:#e8f5ee;color:#1a6e42}
+.tag-az{background:#e8f0fb;color:#1a56a8}.tag-am{background:#fef8e6;color:#966800}
+.tag-ro{background:#fde8f5;color:#8a2070}.tag-ci{background:#e8f9fb;color:#0e6e7a}
+.tag-pr{background:#f0e8fb;color:#5a2090}.tag-gy{background:var(--bdr);color:var(--txm)}
+
+/* MODAL TAREFA */
+.modal-lg{width:580px}
+.tag-picker{display:flex;gap:5px;flex-wrap:wrap;margin-top:.375rem}
+.tag-opt{padding:3px 10px;border-radius:10px;font-size:11px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;font-weight:500}
+.tag-opt.on{border-color:currentColor}
+.prio-opts{display:flex;gap:6px;margin-top:.375rem}
+.prio-opt{padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;border:0.5px solid var(--bdr);color:var(--txm);transition:all .15s;font-weight:500}
+.prio-opt.on-alta{background:var(--errb);border-color:var(--err);color:var(--err)}
+.prio-opt.on-media{background:var(--warnb);border-color:var(--warn);color:var(--warn)}
+.prio-opt.on-baixa{background:var(--okb);border-color:var(--ok);color:var(--ok)}
+.card-detail-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.5rem}
+
 </style>
 </head>
 <body>
@@ -588,6 +633,34 @@ tr:hover td{background:var(--bg)}
         </div>
       </div>
 
+      
+      <!-- ATIVIDADES -->
+      <div class="panel" id="panel-atividades">
+        <div class="board-filters">
+          <select class="bafs" id="ativ-f-resp" onchange="boardRender()">
+            <option value="">Todos responsáveis</option>
+          </select>
+          <select class="bafs" id="ativ-f-prio" onchange="boardRender()">
+            <option value="">Todas prioridades</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+          <select class="bafs" id="ativ-f-tag" onchange="boardRender()">
+            <option value="">Todas etiquetas</option>
+            <option value="vm">Urgente</option>
+            <option value="am">Aguardando</option>
+            <option value="az">Reunião</option>
+            <option value="lj">Concluído</option>
+            <option value="ro">Cliente</option>
+            <option value="ci">Financeiro</option>
+            <option value="pr">Estratégia</option>
+          </select>
+          <button class="ib g" onclick="abrirModalTarefa()" style="font-size:11px;padding:4px 10px;margin-left:auto"><i class="ti ti-plus"></i> Nova tarefa</button>
+        </div>
+        <div class="board-wrap" id="board-wrap"></div>
+      </div>
+
       <!-- COMERCIAL -->
       <div class="panel" id="panel-comercial">
         <div class="mg">
@@ -881,6 +954,7 @@ function activatePanel(p,tit,tag,el) {
   // persistir painel ativo
   try { sessionStorage.setItem('pataro-panel', JSON.stringify({p,tit,tag})); } catch(e){}
   if(p==='cs'||p==='base-alunos') syncNovosAlunos();
+  if(p==='atividades') { loadAtividades(); }
   if(p==='renovacoes') renderRenov();
   if(p==='alertas') renderAlertas();
   if(p==='interacoes') loadInt();
@@ -1751,6 +1825,276 @@ window.toggleFiltrosAvancados = function() {
   }
 };
 
+
+// ══ CENTRAL DE ATIVIDADES ══
+const SETORES_BOARD = [
+  {id:'cs',     label:'CS / Pedagógico', cor:'#1a56a8'},
+  {id:'comercial', label:'Comercial',    cor:'#966800'},
+  {id:'marketing', label:'Marketing',    cor:'#8a2070'},
+  {id:'financeiro',label:'Financeiro',   cor:'#1a6e42'},
+  {id:'admin',  label:'Admin',           cor:'#444'},
+];
+const STATUS_BOARD = [
+  {id:'afazer',    label:'A fazer'},
+  {id:'andamento', label:'Em andamento'},
+  {id:'concluido', label:'Concluído'},
+];
+const TAGS_INFO = {
+  vm:{label:'Urgente',cls:'tag-vm'}, am:{label:'Aguardando',cls:'tag-am'},
+  az:{label:'Reunião',cls:'tag-az'}, lj:{label:'Concluído',cls:'tag-lj'},
+  ro:{label:'Cliente',cls:'tag-ro'}, ci:{label:'Financeiro',cls:'tag-ci'},
+  pr:{label:'Estratégia',cls:'tag-pr'},
+};
+
+let boardTarefas = [];
+let editandoTarefa = null;
+let selPrioVal = '';
+let selTags = [];
+let boardUsuarios = [];
+
+async function loadAtividades() {
+  try {
+    const {collection, getDocs, orderBy, query} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    if (!window.dbRef) return;
+    const snap = await getDocs(query(collection(window.dbRef,'atividades'), orderBy('criado','desc')));
+    boardTarefas = snap.docs.map(d => ({id:d.id,...d.data()}));
+    boardRender();
+  } catch(e) { console.log('atividades:', e.message); }
+}
+
+function boardRender() {
+  const wrap = document.getElementById('board-wrap');
+  if (!wrap) return;
+  const fResp = (document.getElementById('ativ-f-resp')||{}).value||'';
+  const fPrio = (document.getElementById('ativ-f-prio')||{}).value||'';
+  const fTag  = (document.getElementById('ativ-f-tag')||{}).value||'';
+
+  let tarefas = boardTarefas.filter(t =>
+    (!fResp || t.resp === fResp) &&
+    (!fPrio || t.prio === fPrio) &&
+    (!fTag  || (t.tags||[]).includes(fTag))
+  );
+
+  wrap.innerHTML = '';
+  SETORES_BOARD.forEach(setor => {
+    const col = document.createElement('div');
+    col.className = 'board-col';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'board-col-hdr';
+    hdr.style.cssText = `background:${setor.cor};color:#fff`;
+    const count = tarefas.filter(t => t.setor === setor.id).length;
+    hdr.innerHTML = `<span>${setor.label}</span><span class="col-count">${count}</span>`;
+    col.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.className = 'board-col-body';
+
+    STATUS_BOARD.forEach(st => {
+      const lane = document.createElement('div');
+      lane.className = 'board-swimlane';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'board-swimlane-lbl';
+      lbl.textContent = st.label;
+      lane.appendChild(lbl);
+
+      const cards = document.createElement('div');
+      cards.className = 'board-cards';
+
+      const items = tarefas.filter(t => t.setor === setor.id && t.status === st.id);
+      items.forEach(t => {
+        const card = criarCard(t);
+        cards.appendChild(card);
+      });
+
+      lane.appendChild(cards);
+
+      // botão adicionar
+      if (st.id === 'afazer') {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'board-add-btn';
+        addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:12px"></i> Adicionar tarefa';
+        addBtn.addEventListener('click', () => abrirModalTarefa(setor.id, st.id));
+        lane.appendChild(addBtn);
+      }
+
+      body.appendChild(lane);
+    });
+
+    col.appendChild(body);
+    wrap.appendChild(col);
+  });
+}
+
+function criarCard(t) {
+  const card = document.createElement('div');
+  card.className = 'board-card prio-' + (t.prio||'baixa');
+
+  // tags
+  const tagHtml = (t.tags||[]).map(tg => {
+    const ti = TAGS_INFO[tg];
+    return ti ? `<span class="board-card-tag ${ti.cls}">${ti.label}</span>` : '';
+  }).join('');
+
+  // prazo
+  let prazoHtml = '';
+  if (t.prazo) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const prazoD = new Date(t.prazo + 'T00:00:00');
+    const diff = Math.ceil((prazoD - hoje) / 86400000);
+    const cls = diff < 0 ? 'vencido' : diff === 0 ? 'hoje' : '';
+    const txt = diff < 0 ? `Venceu ${-diff}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+    prazoHtml = `<span class="board-card-prazo ${cls}"><i class="ti ti-calendar" style="font-size:10px"></i>${txt}</span>`;
+  }
+
+  // responsável
+  const iniciais = t.resp ? t.resp.substring(0,2).toUpperCase() : '';
+  const respHtml = iniciais ? `<span class="board-card-resp" title="${t.resp}">${iniciais}</span>` : '';
+
+  card.innerHTML = `
+    <div class="board-card-title">${t.titulo||'Sem título'}</div>
+    <div class="board-card-meta">
+      ${tagHtml}
+      ${prazoHtml}
+      ${respHtml}
+    </div>`;
+
+  card.addEventListener('click', () => abrirModalTarefa(t.setor, t.status, t));
+  return card;
+}
+
+window.abrirModalTarefa = function(setor, status, tarefa) {
+  editandoTarefa = tarefa || null;
+  selPrioVal = tarefa?.prio || '';
+  selTags = tarefa?.tags ? [...tarefa.tags] : [];
+
+  document.getElementById('mo-tarefa-tit').textContent = tarefa ? 'Editar tarefa' : 'Nova tarefa';
+  document.getElementById('ativ-titulo').value = tarefa?.titulo || '';
+  document.getElementById('ativ-desc').value = tarefa?.desc || '';
+  document.getElementById('ativ-prazo').value = tarefa?.prazo || '';
+  document.getElementById('btn-del-tarefa').style.display = tarefa ? 'flex' : 'none';
+
+  const setorSel = document.getElementById('ativ-setor');
+  if (setor) setorSel.value = setor;
+  else setorSel.value = 'cs';
+
+  const statusSel = document.getElementById('ativ-status');
+  if (status) statusSel.value = status;
+  else statusSel.value = 'afazer';
+
+  // responsável
+  const respSel = document.getElementById('ativ-resp');
+  respSel.innerHTML = '<option value="">Ninguém</option>';
+  boardUsuarios.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.nome; opt.textContent = u.nome;
+    if (tarefa?.resp === u.nome) opt.selected = true;
+    respSel.appendChild(opt);
+  });
+  // se não tem usuários carregados, adicionar manualmente
+  if (!boardUsuarios.length) {
+    ['CS','Comercial','Marketing','Financeiro','Admin'].forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = n;
+      if (tarefa?.resp === n) opt.selected = true;
+      respSel.appendChild(opt);
+    });
+  }
+
+  // prioridade
+  document.querySelectorAll('.prio-opt').forEach(b => {
+    b.className = 'prio-opt';
+    if (b.dataset.prio === selPrioVal) b.classList.add('on-' + selPrioVal);
+  });
+
+  // tags
+  document.querySelectorAll('.tag-opt').forEach(el => {
+    el.classList.toggle('on', selTags.includes(el.dataset.tag));
+  });
+
+  document.getElementById('mo-tarefa').classList.add('open');
+};
+
+window.selPrio = function(p, el) {
+  selPrioVal = p;
+  document.querySelectorAll('.prio-opt').forEach(b => b.className = 'prio-opt');
+  el.classList.add('on-' + p);
+};
+
+window.toggleTag = function(tag, el) {
+  if (selTags.includes(tag)) {
+    selTags = selTags.filter(t => t !== tag);
+    el.classList.remove('on');
+  } else {
+    selTags.push(tag);
+    el.classList.add('on');
+  }
+};
+
+window.salvarTarefa = async function() {
+  const titulo = document.getElementById('ativ-titulo').value.trim();
+  if (!titulo) { document.getElementById('ativ-titulo').focus(); return; }
+
+  const dados = {
+    titulo,
+    desc:   document.getElementById('ativ-desc').value.trim(),
+    setor:  document.getElementById('ativ-setor').value,
+    status: document.getElementById('ativ-status').value,
+    resp:   document.getElementById('ativ-resp').value,
+    prazo:  document.getElementById('ativ-prazo').value,
+    prio:   selPrioVal || 'baixa',
+    tags:   [...selTags],
+  };
+
+  try {
+    const {collection, addDoc, doc, updateDoc, serverTimestamp} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    if (!window.dbRef) return;
+    if (editandoTarefa?.id) {
+      await updateDoc(doc(window.dbRef,'atividades',editandoTarefa.id), {...dados, atualizado: serverTimestamp()});
+      const idx = boardTarefas.findIndex(t => t.id === editandoTarefa.id);
+      if (idx >= 0) boardTarefas[idx] = {...boardTarefas[idx], ...dados};
+    } else {
+      dados.criado = serverTimestamp();
+      const ref = await addDoc(collection(window.dbRef,'atividades'), dados);
+      boardTarefas.unshift({id: ref.id, ...dados});
+    }
+    fm('mo-tarefa');
+    boardRender();
+  } catch(e) { alert('Erro ao salvar: ' + e.message); }
+};
+
+window.deletarTarefa = async function() {
+  if (!editandoTarefa?.id) return;
+  if (!confirm('Excluir esta tarefa?')) return;
+  try {
+    const {doc, deleteDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    if (window.dbRef) await deleteDoc(doc(window.dbRef,'atividades',editandoTarefa.id));
+    boardTarefas = boardTarefas.filter(t => t.id !== editandoTarefa.id);
+    fm('mo-tarefa');
+    boardRender();
+  } catch(e) { alert('Erro ao excluir: ' + e.message); }
+};
+
+// Carregar usuários do Firebase para o select de responsável
+async function loadUsuariosBoard() {
+  try {
+    const {collection, getDocs} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    if (!window.dbRef) return;
+    const snap = await getDocs(collection(window.dbRef,'usuarios'));
+    boardUsuarios = snap.docs.map(d => ({id:d.id,...d.data()}));
+    // popular filtro de responsável
+    const sel = document.getElementById('ativ-f-resp');
+    if (sel) {
+      boardUsuarios.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.nome; opt.textContent = u.nome;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {}
+}
+
 </script>
 
 
@@ -1785,6 +2129,84 @@ window.toggleFiltrosAvancados = function() {
         <button class="ib" onclick="fecharConfirm()">Cancelar</button>
         <button class="ib" id="confirm-final-btn" style="background:var(--err);border-color:var(--err);color:#fff;opacity:.4" disabled onclick="executarExclusao()"><i class="ti ti-trash"></i> Confirmar exclusão</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL TAREFA -->
+<div class="mo" id="mo-tarefa">
+  <div class="modal modal-lg">
+    <div style="padding:1.125rem 1.5rem;border-bottom:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:15px;font-weight:600;color:var(--tx)" id="mo-tarefa-tit">Nova tarefa</div>
+      <button class="mclose" onclick="fm('mo-tarefa')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:1.25rem 1.5rem;overflow-y:auto;max-height:70vh;display:flex;flex-direction:column;gap:.875rem">
+      <div class="fg">
+        <label>Título <span style="color:var(--gold)">*</span></label>
+        <input type="text" id="ativ-titulo" placeholder="Descreva a tarefa...">
+      </div>
+      <div class="fg">
+        <label>Descrição</label>
+        <textarea id="ativ-desc" rows="2" placeholder="Detalhes, contexto, links..."></textarea>
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label>Setor</label>
+          <select id="ativ-setor">
+            <option value="cs">CS / Pedagógico</option>
+            <option value="comercial">Comercial</option>
+            <option value="marketing">Marketing</option>
+            <option value="financeiro">Financeiro</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Status</label>
+          <select id="ativ-status">
+            <option value="afazer">A fazer</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label>Responsável</label>
+          <select id="ativ-resp">
+            <option value="">Ninguém</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Prazo</label>
+          <input type="date" id="ativ-prazo">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Prioridade</label>
+        <div class="prio-opts">
+          <button class="prio-opt" data-prio="alta" onclick="selPrio('alta',this)">🔴 Alta</button>
+          <button class="prio-opt" data-prio="media" onclick="selPrio('media',this)">🟡 Média</button>
+          <button class="prio-opt" data-prio="baixa" onclick="selPrio('baixa',this)">🟢 Baixa</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Etiquetas</label>
+        <div class="tag-picker">
+          <span class="tag-opt tag-vm" data-tag="vm" onclick="toggleTag('vm',this)">Urgente</span>
+          <span class="tag-opt tag-am" data-tag="am" onclick="toggleTag('am',this)">Aguardando</span>
+          <span class="tag-opt tag-az" data-tag="az" onclick="toggleTag('az',this)">Reunião</span>
+          <span class="tag-opt tag-lj" data-tag="lj" onclick="toggleTag('lj',this)">Concluído</span>
+          <span class="tag-opt tag-ro" data-tag="ro" onclick="toggleTag('ro',this)">Cliente</span>
+          <span class="tag-opt tag-ci" data-tag="ci" onclick="toggleTag('ci',this)">Financeiro</span>
+          <span class="tag-opt tag-pr" data-tag="pr" onclick="toggleTag('pr',this)">Estratégia</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:.875rem 1.5rem;border-top:0.5px solid var(--bdr);display:flex;gap:7px;justify-content:flex-end">
+      <button class="ib" onclick="fm('mo-tarefa')">Cancelar</button>
+      <button class="ib" id="btn-del-tarefa" style="color:var(--err);border-color:var(--errb);display:none" onclick="deletarTarefa()"><i class="ti ti-trash"></i> Excluir</button>
+      <button class="ib g" onclick="salvarTarefa()"><i class="ti ti-device-floppy"></i> Salvar</button>
     </div>
   </div>
 </div>
