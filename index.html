@@ -969,9 +969,9 @@ function activatePanel(p,tit,tag,el) {
   // persistir painel ativo
   try { sessionStorage.setItem('pataro-panel', JSON.stringify({p,tit,tag})); } catch(e){}
   if(p==='cs'||p==='base-alunos') syncNovosAlunos();
-  if(p==='atividades') { 
-    boardRender(); // renderiza estrutura imediatamente
-    loadAtividades(); // carrega dados do Firebase em seguida
+  if(p==='atividades') {
+    if(typeof window.boardRender==='function') window.boardRender();
+    if(typeof window.loadAtividades==='function') window.loadAtividades();
   }
   if(p==='renovacoes') renderRenov();
   if(p==='alertas') renderAlertas();
@@ -1841,333 +1841,7 @@ window.toggleFiltrosAvancados = function() {
 };
 
 
-// ══ CENTRAL DE ATIVIDADES ══
-const SETORES_BOARD = [
-  {id:'cs',        label:'CS / Pedagógico', cor:'#1a56a8'},
-  {id:'comercial', label:'Comercial',        cor:'#966800'},
-  {id:'marketing', label:'Marketing',        cor:'#8a2070'},
-  {id:'financeiro',label:'Financeiro',       cor:'#1a6e42'},
-  {id:'admin',     label:'Admin',            cor:'#444'},
-];
-const STATUS_BOARD = [
-  {id:'afazer',    label:'A fazer'},
-  {id:'andamento', label:'Em andamento'},
-  {id:'concluido', label:'Concluído'},
-];
 
-// Tags são salvas no Firebase e carregadas dinamicamente
-let boardTarefas = [];
-let boardTagsCustom = []; // [{id, label, cor}]
-let editandoTarefa = null;
-let selPrioVal = '';
-let selTagsAtual = [];
-
-// Salvar tags customizadas no localStorage para persistir
-function salvarTagsLocal() {
-  try { localStorage.setItem('pataro-tags', JSON.stringify(boardTagsCustom)); } catch(e){}
-}
-function carregarTagsLocal() {
-  try {
-    const s = localStorage.getItem('pataro-tags');
-    if (s) boardTagsCustom = JSON.parse(s);
-    // tags padrão se vazio
-    if (!boardTagsCustom.length) {
-      boardTagsCustom = [
-        {id:'vm', label:'Urgente',    cor:'#b02828'},
-        {id:'am', label:'Aguardando', cor:'#966800'},
-        {id:'az', label:'Reunião',    cor:'#1a56a8'},
-        {id:'lj', label:'Concluído',  cor:'#1a6e42'},
-        {id:'ro', label:'Cliente',    cor:'#8a2070'},
-        {id:'ci', label:'Financeiro', cor:'#0e6e7a'},
-        {id:'pr', label:'Estratégia', cor:'#5a2090'},
-      ];
-      salvarTagsLocal();
-    }
-  } catch(e){}
-}
-carregarTagsLocal();
-
-window.loadAtividades = async function loadAtividades() {
-  // aguardar dbRef ficar disponível (máx 3s)
-  let tentativas = 0;
-  while (!window.dbRef && tentativas < 30) {
-    await new Promise(r => setTimeout(r, 100));
-    tentativas++;
-  }
-  try {
-    const {collection, getDocs, orderBy, query} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (!window.dbRef) { boardRender(); return; }
-    const snap = await getDocs(query(collection(window.dbRef,'atividades'), orderBy('criado','desc')));
-    boardTarefas = snap.docs.map(d => ({id:d.id,...d.data()}));
-    boardRender();
-    popularFiltroTags();
-  } catch(e) {
-    // se falhar, mostrar board vazio
-    boardRender();
-    console.log('atividades err:', e.message);
-  }
-}
-
-function popularFiltroTags() {
-  const sel = document.getElementById('ativ-f-tag');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Todas etiquetas</option>';
-  boardTagsCustom.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id; opt.textContent = t.label;
-    sel.appendChild(opt);
-  });
-}
-
-window.boardRender = function boardRender() {
-  const wrap = document.getElementById('board-wrap');
-  if (!wrap) return;
-  const fResp = (document.getElementById('ativ-f-resp')||{}).value||'';
-  const fPrio = (document.getElementById('ativ-f-prio')||{}).value||'';
-  const fTag  = (document.getElementById('ativ-f-tag')||{}).value||'';
-
-  let tarefas = boardTarefas.filter(t =>
-    (!fResp || (t.resp||'').toLowerCase().includes(fResp.toLowerCase())) &&
-    (!fPrio || t.prio === fPrio) &&
-    (!fTag  || (t.tags||[]).includes(fTag))
-  );
-
-  wrap.innerHTML = '';
-  SETORES_BOARD.forEach(setor => {
-    const col = document.createElement('div');
-    col.className = 'board-col';
-
-    const hdr = document.createElement('div');
-    hdr.className = 'board-col-hdr';
-    hdr.style.cssText = `background:${setor.cor};color:#fff`;
-    const count = tarefas.filter(t => t.setor === setor.id).length;
-    hdr.innerHTML = `<span>${setor.label}</span><span class="col-count">${count}</span>`;
-    col.appendChild(hdr);
-
-    const body = document.createElement('div');
-    body.className = 'board-col-body';
-
-    STATUS_BOARD.forEach(st => {
-      const lane = document.createElement('div');
-      lane.className = 'board-swimlane';
-
-      const lbl = document.createElement('div');
-      lbl.className = 'board-swimlane-lbl';
-      lbl.textContent = st.label;
-      lane.appendChild(lbl);
-
-      const cards = document.createElement('div');
-      cards.className = 'board-cards';
-
-      tarefas.filter(t => t.setor === setor.id && t.status === st.id).forEach(t => {
-        cards.appendChild(criarCard(t));
-      });
-
-      lane.appendChild(cards);
-
-      const addBtn = document.createElement('button');
-      addBtn.className = 'board-add-btn';
-      addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:12px"></i> Adicionar';
-      addBtn.addEventListener('click', () => abrirModalTarefa(setor.id, st.id));
-      lane.appendChild(addBtn);
-
-      body.appendChild(lane);
-    });
-
-    col.appendChild(body);
-    wrap.appendChild(col);
-  });
-}
-
-function getTagInfo(id) {
-  return boardTagsCustom.find(t => t.id === id) || {label: id, cor: '#888'};
-}
-
-function hexToRgba(hex, a) {
-  const r = parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-function criarCard(t) {
-  const card = document.createElement('div');
-  card.className = 'board-card prio-' + (t.prio||'baixa');
-
-  const tagHtml = (t.tags||[]).map(tg => {
-    const ti = getTagInfo(tg);
-    return `<span class="board-card-tag" style="background:${hexToRgba(ti.cor,.12)};color:${ti.cor}">${ti.label}</span>`;
-  }).join('');
-
-  let prazoHtml = '';
-  if (t.prazo) {
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const prazoD = new Date(t.prazo + 'T00:00:00');
-    const diff = Math.ceil((prazoD - hoje) / 86400000);
-    const cls = diff < 0 ? 'vencido' : diff === 0 ? 'hoje' : '';
-    const txt = diff < 0 ? `Venceu ${-diff}d` : diff === 0 ? 'Hoje' : `${diff}d`;
-    prazoHtml = `<span class="board-card-prazo ${cls}"><i class="ti ti-calendar" style="font-size:10px"></i> ${txt}</span>`;
-  }
-
-  const iniciais = (t.resp||'').trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  const respHtml = iniciais ? `<span class="board-card-resp" title="${t.resp}">${iniciais}</span>` : '';
-
-  card.innerHTML = `
-    <div class="board-card-title">${t.titulo||'Sem título'}</div>
-    <div class="board-card-meta">${tagHtml}${prazoHtml}${respHtml}</div>`;
-
-  card.addEventListener('click', () => abrirModalTarefa(t.setor, t.status, t));
-  return card;
-}
-
-window.abrirModalTarefa = function(setor, status, tarefa) {
-  // garantir que board está renderizado
-  if (!document.getElementById('board-wrap')?.children.length) boardRender();
-  editandoTarefa = tarefa || null;
-  selPrioVal = tarefa?.prio || '';
-  selTagsAtual = tarefa?.tags ? [...tarefa.tags] : [];
-
-  document.getElementById('mo-tarefa-tit').textContent = tarefa ? 'Editar tarefa' : 'Nova tarefa';
-  document.getElementById('ativ-titulo').value = tarefa?.titulo || '';
-  document.getElementById('ativ-desc').value = tarefa?.desc || '';
-  document.getElementById('ativ-prazo').value = tarefa?.prazo || '';
-  document.getElementById('ativ-resp').value = tarefa?.resp || '';
-  document.getElementById('btn-del-tarefa').style.display = tarefa ? 'flex' : 'none';
-
-  const setorSel = document.getElementById('ativ-setor');
-  setorSel.value = setor || 'cs';
-
-  const statusSel = document.getElementById('ativ-status');
-  statusSel.value = status || 'afazer';
-
-  // prioridade
-  document.querySelectorAll('.prio-opt').forEach(b => {
-    b.className = 'prio-opt';
-    if (b.dataset.prio === selPrioVal) b.classList.add('on-' + selPrioVal);
-  });
-
-  // renderizar tags dinâmicas
-  renderTagPicker();
-
-  // autocomplete de responsáveis usados
-  const usados = [...new Set(boardTarefas.map(t=>t.resp).filter(Boolean))];
-  const dl = document.getElementById('ativ-resp-list');
-  if (dl) {
-    dl.innerHTML = '';
-    usados.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = u;
-      dl.appendChild(opt);
-    });
-  }
-
-  document.getElementById('mo-tarefa').classList.add('open');
-  setTimeout(() => document.getElementById('ativ-titulo').focus(), 100);
-};
-
-function renderTagPicker() {
-  const picker = document.getElementById('tag-picker-ativo');
-  if (!picker) return;
-  picker.innerHTML = '';
-  boardTagsCustom.forEach(t => {
-    const span = document.createElement('span');
-    span.className = 'tag-opt';
-    span.dataset.tag = t.id;
-    span.textContent = t.label;
-    span.style.cssText = `background:${hexToRgba(t.cor,.12)};color:${t.cor}`;
-    if (selTagsAtual.includes(t.id)) {
-      span.classList.add('on');
-      span.style.borderColor = t.cor;
-    }
-    span.addEventListener('click', () => {
-      if (selTagsAtual.includes(t.id)) {
-        selTagsAtual = selTagsAtual.filter(x => x !== t.id);
-        span.classList.remove('on');
-        span.style.borderColor = 'transparent';
-      } else {
-        selTagsAtual.push(t.id);
-        span.classList.add('on');
-        span.style.borderColor = t.cor;
-      }
-    });
-    picker.appendChild(span);
-  });
-}
-
-window.criarNovaTag = function() {
-  const nome = (document.getElementById('nova-tag-nome').value||'').trim();
-  const cor  = document.getElementById('nova-tag-cor').value || '#e69a00';
-  if (!nome) { document.getElementById('nova-tag-nome').focus(); return; }
-  const id = 'tag_' + Date.now();
-  boardTagsCustom.push({id, label: nome, cor});
-  salvarTagsLocal();
-  document.getElementById('nova-tag-nome').value = '';
-  renderTagPicker();
-  popularFiltroTags();
-};
-
-window.selPrio = function(p, el) {
-  selPrioVal = p;
-  document.querySelectorAll('.prio-opt').forEach(b => b.className = 'prio-opt');
-  el.classList.add('on-' + p);
-};
-
-window.salvarTarefa = async function() {
-  const titulo = (document.getElementById('ativ-titulo').value||'').trim();
-  if (!titulo) {
-    document.getElementById('ativ-titulo').style.borderColor = 'var(--err)';
-    document.getElementById('ativ-titulo').focus();
-    return;
-  }
-  document.getElementById('ativ-titulo').style.borderColor = '';
-
-  const dados = {
-    titulo,
-    desc:   (document.getElementById('ativ-desc').value||'').trim(),
-    setor:  document.getElementById('ativ-setor').value,
-    status: document.getElementById('ativ-status').value,
-    resp:   (document.getElementById('ativ-resp').value||'').trim(),
-    prazo:  document.getElementById('ativ-prazo').value,
-    prio:   selPrioVal || 'baixa',
-    tags:   [...selTagsAtual],
-  };
-
-  const btn = document.querySelector('#mo-tarefa .ib.g');
-  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
-
-  try {
-    const {collection, addDoc, doc, updateDoc, serverTimestamp} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (!window.dbRef) { alert('Sem conexão com o banco. Tente recarregar.'); return; }
-    if (editandoTarefa?.id) {
-      await updateDoc(doc(window.dbRef,'atividades',editandoTarefa.id), {...dados, atualizado: serverTimestamp()});
-      const idx = boardTarefas.findIndex(t => t.id === editandoTarefa.id);
-      if (idx >= 0) boardTarefas[idx] = {...boardTarefas[idx], ...dados};
-    } else {
-      const ref = await addDoc(collection(window.dbRef,'atividades'), {...dados, criado: serverTimestamp()});
-      boardTarefas.unshift({id: ref.id, ...dados});
-    }
-    fm('mo-tarefa');
-    boardRender();
-  } catch(e) {
-    alert('Erro ao salvar: ' + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar'; }
-  }
-};
-
-window.deletarTarefa = async function() {
-  if (!editandoTarefa?.id) return;
-  if (!confirm('Excluir esta tarefa permanentemente?')) return;
-  try {
-    const {doc, deleteDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    if (window.dbRef) await deleteDoc(doc(window.dbRef,'atividades',editandoTarefa.id));
-    boardTarefas = boardTarefas.filter(t => t.id !== editandoTarefa.id);
-    fm('mo-tarefa');
-    boardRender();
-  } catch(e) { alert('Erro ao excluir: ' + e.message); }
-};
-
-async function loadUsuariosBoard() {
-  // não é mais necessário — responsável é campo livre
-}
 
 </script>
 
@@ -2280,6 +1954,300 @@ async function loadUsuariosBoard() {
     </div>
   </div>
 </div>
+
+
+<script>
+// ══ BOARD DE ATIVIDADES — script isolado ══
+(function() {
+  const SETORES_BOARD = [
+    {id:'cs',        label:'CS / Pedagógico', cor:'#1a56a8'},
+    {id:'comercial', label:'Comercial',        cor:'#966800'},
+    {id:'marketing', label:'Marketing',        cor:'#8a2070'},
+    {id:'financeiro',label:'Financeiro',       cor:'#1a6e42'},
+    {id:'admin',     label:'Admin',            cor:'#444'},
+  ];
+  const STATUS_BOARD = [
+    {id:'afazer',    label:'A fazer'},
+    {id:'andamento', label:'Em andamento'},
+    {id:'concluido', label:'Concluído'},
+  ];
+
+  let boardTarefas = [];
+  let editandoTarefa = null;
+  let selPrioVal = '';
+  let selTagsAtual = [];
+  let boardTagsCustom = [];
+
+  function hexRgba(hex, a) {
+    try {
+      const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+      return `rgba(${r},${g},${b},${a})`;
+    } catch(e) { return hex; }
+  }
+
+  // ── TAGS ──
+  function salvarTags() { try { localStorage.setItem('pataro-tags-v2', JSON.stringify(boardTagsCustom)); } catch(e){} }
+  function carregarTags() {
+    try {
+      const s = localStorage.getItem('pataro-tags-v2');
+      if (s) { boardTagsCustom = JSON.parse(s); return; }
+    } catch(e){}
+    boardTagsCustom = [
+      {id:'vm', label:'Urgente',    cor:'#b02828'},
+      {id:'am', label:'Aguardando', cor:'#966800'},
+      {id:'az', label:'Reunião',    cor:'#1a56a8'},
+      {id:'lj', label:'Concluído',  cor:'#1a6e42'},
+      {id:'ro', label:'Cliente',    cor:'#8a2070'},
+      {id:'ci', label:'Financeiro', cor:'#0e6e7a'},
+      {id:'pr', label:'Estratégia', cor:'#5a2090'},
+    ];
+    salvarTags();
+  }
+  carregarTags();
+
+  function getTag(id) { return boardTagsCustom.find(t=>t.id===id) || {label:id, cor:'#888'}; }
+
+  // ── RENDER BOARD ──
+  function renderBoard() {
+    const wrap = document.getElementById('board-wrap');
+    if (!wrap) return;
+    const fResp = (document.getElementById('ativ-f-resp')||{}).value||'';
+    const fPrio = (document.getElementById('ativ-f-prio')||{}).value||'';
+    const fTag  = (document.getElementById('ativ-f-tag')||{}).value||'';
+
+    const tarefas = boardTarefas.filter(t =>
+      (!fResp || (t.resp||'').toLowerCase().includes(fResp.toLowerCase())) &&
+      (!fPrio || t.prio === fPrio) &&
+      (!fTag  || (t.tags||[]).includes(fTag))
+    );
+
+    wrap.innerHTML = '';
+    SETORES_BOARD.forEach(setor => {
+      const col = document.createElement('div');
+      col.className = 'board-col';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'board-col-hdr';
+      hdr.style.cssText = `background:${setor.cor};color:#fff`;
+      const cnt = tarefas.filter(t=>t.setor===setor.id).length;
+      hdr.innerHTML = `<span>${setor.label}</span><span class="col-count">${cnt}</span>`;
+      col.appendChild(hdr);
+
+      const body = document.createElement('div');
+      body.className = 'board-col-body';
+
+      STATUS_BOARD.forEach(st => {
+        const lane = document.createElement('div');
+        lane.className = 'board-swimlane';
+        const lbl = document.createElement('div');
+        lbl.className = 'board-swimlane-lbl';
+        lbl.textContent = st.label;
+        lane.appendChild(lbl);
+
+        const cards = document.createElement('div');
+        cards.className = 'board-cards';
+        tarefas.filter(t=>t.setor===setor.id&&t.status===st.id).forEach(t => cards.appendChild(makeCard(t)));
+        lane.appendChild(cards);
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'board-add-btn';
+        addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:11px"></i> Adicionar';
+        addBtn.onclick = () => abrirModal(setor.id, st.id, null);
+        lane.appendChild(addBtn);
+
+        body.appendChild(lane);
+      });
+      col.appendChild(body);
+      wrap.appendChild(col);
+    });
+  }
+
+  function makeCard(t) {
+    const card = document.createElement('div');
+    card.className = 'board-card prio-' + (t.prio||'baixa');
+    const tags = (t.tags||[]).map(tg => {
+      const ti = getTag(tg);
+      return `<span class="board-card-tag" style="background:${hexRgba(ti.cor,.12)};color:${ti.cor}">${ti.label}</span>`;
+    }).join('');
+    let prazo = '';
+    if (t.prazo) {
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      const pd = new Date(t.prazo+'T00:00:00');
+      const diff = Math.ceil((pd-hoje)/86400000);
+      const cls = diff<0?'vencido':diff===0?'hoje':'';
+      const txt = diff<0?`Venceu ${-diff}d`:diff===0?'Hoje':`${diff}d`;
+      prazo = `<span class="board-card-prazo ${cls}"><i class="ti ti-calendar" style="font-size:9px"></i> ${txt}</span>`;
+    }
+    const ini = (t.resp||'').trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const resp = ini ? `<span class="board-card-resp" title="${t.resp}">${ini}</span>` : '';
+    card.innerHTML = `<div class="board-card-title">${t.titulo||'Sem título'}</div><div class="board-card-meta">${tags}${prazo}${resp}</div>`;
+    card.onclick = () => abrirModal(t.setor, t.status, t);
+    return card;
+  }
+
+  // ── MODAL ──
+  function abrirModal(setor, status, tarefa) {
+    editandoTarefa = tarefa || null;
+    selPrioVal = tarefa?.prio || '';
+    selTagsAtual = tarefa ? [...(tarefa.tags||[])] : [];
+
+    document.getElementById('mo-tarefa-tit').textContent = tarefa ? 'Editar tarefa' : 'Nova tarefa';
+    document.getElementById('ativ-titulo').value = tarefa?.titulo || '';
+    document.getElementById('ativ-desc').value = tarefa?.desc || '';
+    document.getElementById('ativ-prazo').value = tarefa?.prazo || '';
+    document.getElementById('ativ-resp').value = tarefa?.resp || '';
+    document.getElementById('ativ-setor').value = setor || 'cs';
+    document.getElementById('ativ-status').value = status || 'afazer';
+    document.getElementById('btn-del-tarefa').style.display = tarefa ? 'flex' : 'none';
+
+    // prioridade
+    document.querySelectorAll('.prio-opt').forEach(b => {
+      b.className = 'prio-opt';
+      if (b.dataset.prio === selPrioVal) b.classList.add('on-'+selPrioVal);
+    });
+
+    // autocomplete responsáveis
+    const usados = [...new Set(boardTarefas.map(t=>t.resp).filter(Boolean))];
+    const dl = document.getElementById('ativ-resp-list');
+    if (dl) { dl.innerHTML = ''; usados.forEach(u => { const o=document.createElement('option'); o.value=u; dl.appendChild(o); }); }
+
+    renderTagPicker();
+    popularFiltroTags();
+
+    document.getElementById('mo-tarefa').classList.add('open');
+    setTimeout(() => document.getElementById('ativ-titulo').focus(), 150);
+  }
+
+  function renderTagPicker() {
+    const picker = document.getElementById('tag-picker-ativo');
+    if (!picker) return;
+    picker.innerHTML = '';
+    boardTagsCustom.forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'tag-opt';
+      span.textContent = t.label;
+      const ativo = selTagsAtual.includes(t.id);
+      span.style.cssText = `background:${hexRgba(t.cor,.12)};color:${t.cor};border-color:${ativo?t.cor:'transparent'}`;
+      if (ativo) span.classList.add('on');
+      span.onclick = () => {
+        if (selTagsAtual.includes(t.id)) {
+          selTagsAtual = selTagsAtual.filter(x=>x!==t.id);
+          span.classList.remove('on');
+          span.style.borderColor = 'transparent';
+        } else {
+          selTagsAtual.push(t.id);
+          span.classList.add('on');
+          span.style.borderColor = t.cor;
+        }
+      };
+      picker.appendChild(span);
+    });
+  }
+
+  function popularFiltroTags() {
+    const sel = document.getElementById('ativ-f-tag');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Todas etiquetas</option>';
+    boardTagsCustom.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.label;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── SALVAR ──
+  async function salvarTarefa() {
+    const titulo = (document.getElementById('ativ-titulo').value||'').trim();
+    if (!titulo) { document.getElementById('ativ-titulo').style.borderColor='var(--err)'; document.getElementById('ativ-titulo').focus(); return; }
+    document.getElementById('ativ-titulo').style.borderColor='';
+
+    const dados = {
+      titulo,
+      desc:   (document.getElementById('ativ-desc').value||'').trim(),
+      setor:  document.getElementById('ativ-setor').value,
+      status: document.getElementById('ativ-status').value,
+      resp:   (document.getElementById('ativ-resp').value||'').trim(),
+      prazo:  document.getElementById('ativ-prazo').value,
+      prio:   selPrioVal || 'baixa',
+      tags:   [...selTagsAtual],
+    };
+
+    const btn = document.getElementById('mo-tarefa').querySelector('.ib.g');
+    if (btn) { btn.disabled=true; btn.textContent='Salvando...'; }
+
+    try {
+      const {collection, addDoc, doc, updateDoc, serverTimestamp, getFirestore} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const db = window.dbRef;
+      if (!db) throw new Error('Sem conexão com banco de dados.');
+
+      if (editandoTarefa?.id) {
+        await updateDoc(doc(db,'atividades',editandoTarefa.id), {...dados, atualizado:serverTimestamp()});
+        const idx = boardTarefas.findIndex(t=>t.id===editandoTarefa.id);
+        if (idx>=0) boardTarefas[idx] = {...boardTarefas[idx], ...dados};
+      } else {
+        const ref = await addDoc(collection(db,'atividades'), {...dados, criado:serverTimestamp()});
+        boardTarefas.unshift({id:ref.id, ...dados});
+      }
+      document.getElementById('mo-tarefa').classList.remove('open');
+      renderBoard();
+    } catch(e) {
+      alert('Erro ao salvar: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled=false; btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar'; }
+    }
+  }
+
+  async function deletarTarefa() {
+    if (!editandoTarefa?.id) return;
+    if (!confirm('Excluir esta tarefa?')) return;
+    try {
+      const {doc, deleteDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await deleteDoc(doc(window.dbRef,'atividades',editandoTarefa.id));
+      boardTarefas = boardTarefas.filter(t=>t.id!==editandoTarefa.id);
+      document.getElementById('mo-tarefa').classList.remove('open');
+      renderBoard();
+    } catch(e) { alert('Erro: '+e.message); }
+  }
+
+  async function carregarTarefas() {
+    try {
+      // aguardar dbRef (máx 5s)
+      for (let i=0; i<50; i++) {
+        if (window.dbRef) break;
+        await new Promise(r=>setTimeout(r,100));
+      }
+      if (!window.dbRef) { renderBoard(); return; }
+      const {collection, getDocs, orderBy, query} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(query(collection(window.dbRef,'atividades'), orderBy('criado','desc')));
+      boardTarefas = snap.docs.map(d=>({id:d.id,...d.data()}));
+    } catch(e) { console.log('board err:', e.message); }
+    renderBoard();
+  }
+
+  // ── EXPOR NO WINDOW ──
+  window.boardRender    = renderBoard;
+  window.loadAtividades = carregarTarefas;
+  window.abrirModalTarefa = abrirModal;
+  window.salvarTarefa   = salvarTarefa;
+  window.deletarTarefa  = deletarTarefa;
+  window.criarNovaTag   = function() {
+    const nome = (document.getElementById('nova-tag-nome').value||'').trim();
+    const cor  = document.getElementById('nova-tag-cor').value || '#e69a00';
+    if (!nome) return;
+    boardTagsCustom.push({id:'tag_'+Date.now(), label:nome, cor});
+    salvarTags();
+    document.getElementById('nova-tag-nome').value = '';
+    renderTagPicker();
+    popularFiltroTags();
+  };
+  window.selPrio = function(p, el) {
+    selPrioVal = p;
+    document.querySelectorAll('.prio-opt').forEach(b=>b.className='prio-opt');
+    el.classList.add('on-'+p);
+  };
+
+})(); // fim IIFE
+</script>
 
 </body>
 </html>
